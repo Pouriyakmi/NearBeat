@@ -12,7 +12,7 @@ export default function ProfilePage({ listener }) {
   return (
     <AppShell title={`${listener.username} | NearBeat`}>
       <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
-        <Link href="/" className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-slate-400 transition hover:text-white">
+        <Link href="/feed" className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-slate-400 transition hover:text-white">
           <ArrowLeft size={16} /> Back to feed
         </Link>
 
