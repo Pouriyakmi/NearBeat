@@ -1,16 +1,22 @@
 # NearBeat
 
-NearBeat is a beginner-friendly social music presence prototype. The first phase is intentionally simple: a polished Next.js web UI with mock nearby listeners and no backend.
+NearBeat is a beginner-friendly social music presence prototype. The app now opens directly into the live feed, because the feed is the core product experience: your current music, nearby listeners, shared tracks, and social discovery.
 
-## What is included in Phase 1
+## Current Phase 1 scope
 
-- A cyberpunk-inspired landing page
-- A nearby feed page
-- Animated glassmorphism cards
-- Mock users, songs, album-cover gradients, notes, and distances
-- Local-only data from `data/mockUsers.js`
+Included now:
 
-## Not included yet
+- Mobile-first Next.js web app
+- Live feed as the default `/` route
+- Spotify-like `Now Playing` panel for the current mock user
+- Nearby listeners sorted by closest distance
+- Social/music profile pages at `/profile/[id]`
+- Music discovery/library page at `/music`
+- Search page at `/search`
+- Settings/privacy page at `/settings`
+- Realistic mock data for users, tracks, upload status, playlists, and listening progress
+
+Not included yet:
 
 - No PocketBase backend
 - No authentication
