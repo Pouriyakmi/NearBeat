@@ -1,13 +1,17 @@
 import Link from 'next/link';
-import { ArrowLeft, Clock3, Headphones, Heart, MapPin, Music2, UserPlus } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
 import AppShell from '../../components/AppShell';
-import ProgressBar from '../../components/ProgressBar';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { getUserProfile } from '../../services/firestore';
+import { useFeed } from '../../hooks/useFeed';
 import TrackRow from '../../components/TrackRow';
-import { getListenerById, playlists, sharedTracks, trendingTracks, nearbyListeners } from '../../data/mockUsers';
 
-export default function ProfilePage({ listener }) {
-  const track = listener.nowPlaying;
-  const recentTracks = [track, ...trendingTracks.filter((item) => item.title !== track.title)].slice(0, 4);
+export default function ProfilePage() {
+  const router = useRouter();
+  const { id } = router.query;
+  const [user, setUser] = useState(null);
+  const { items } = useFeed();
 
   return (
     <AppShell title={`${listener.username} | NearBeat`}>
@@ -42,65 +46,17 @@ export default function ProfilePage({ listener }) {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-[2rem] border border-white/8 bg-white/[0.04] p-5">
-            <div className="flex items-center gap-3">
-              <div className="h-16 w-16 rounded-2xl" style={{ backgroundImage: `linear-gradient(135deg, ${track.artworkGradient})` }} />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">Currently listening</p>
-                <h2 className="truncate text-xl font-black text-white">{track.title}</h2>
-                <p className="truncate text-sm text-slate-400">{track.artist}</p>
-              </div>
-            </div>
-            <div className="mt-4">
-              <ProgressBar value={track.progress} subtle />
-              <div className="mt-2 flex justify-between text-xs text-slate-500"><span>{track.currentTime}</span><span>{track.duration}</span></div>
-            </div>
-            <p className="mt-4 rounded-2xl bg-black/18 p-3 text-sm leading-6 text-slate-300">
-              {track.isUploaded ? 'This track is shared/uploaded, so future listeners can play it inside NearBeat.' : 'This track is metadata-only, so future listeners can see the song but cannot stream the file yet.'}
-            </p>
-          </div>
+  const uploads = items.filter((x) => x.ownerUid === id);
 
-          <div className="rounded-[2rem] border border-white/8 bg-white/[0.04] p-5">
-            <h2 className="flex items-center gap-2 font-black text-white"><Music2 size={18} /> Playlists</h2>
-            <div className="mt-4 space-y-3">
-              {playlists.slice(0, 2).map((playlist) => (
-                <div key={playlist.id} className="rounded-2xl bg-black/18 p-3">
-                  <div className="h-16 rounded-xl" style={{ backgroundImage: `linear-gradient(135deg, ${playlist.gradient})` }} />
-                  <p className="mt-3 font-bold text-white">{playlist.title}</p>
-                  <p className="text-xs text-slate-400">{playlist.trackCount} tracks · playlist pages later</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+  if (!user) return <AppShell title="Profile | NearBeat"><div className="p-6 text-slate-400">Loading profile...</div></AppShell>;
 
-        <section className="mt-6 grid gap-5 lg:grid-cols-2">
-          <div>
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-black text-white"><Headphones size={18} /> Recently played</h2>
-            <div className="space-y-3">{recentTracks.map((item) => <TrackRow key={item.id || item.title} track={item} meta="recent" />)}</div>
-          </div>
-          <div>
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-black text-white"><Music2 size={18} /> Shared tracks</h2>
-            <div className="space-y-3">{sharedTracks.map((item) => <TrackRow key={item.id} track={item} meta={item.sharedBy} />)}</div>
-          </div>
-        </section>
+  return (
+    <AppShell title={`${user.username || 'user'} | NearBeat`}>
+      <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+        <Link href="/feed" className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-slate-400 transition hover:text-white"><ArrowLeft size={16} /> Back to feed</Link>
+        <section className="rounded-[2rem] border border-white/10 bg-white/[0.05] p-6"><h1 className="text-3xl font-black">{user.displayName}</h1><p className="text-slate-400">@{user.username} · ID: {user.uid}</p><p className="mt-3 text-slate-300">{user.bio}</p><p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm"><MapPin size={14} /> {user.approximateLocation || 'Nearby'}</p></section>
+        <section className="mt-6"><h2 className="mb-3 text-lg font-black">Uploaded tracks</h2>{uploads.length===0 ? <p className="text-slate-500">No uploads yet.</p> : <div className="space-y-3">{uploads.map((track)=><TrackRow key={track.id} track={{title:track.title,artist:track.artist,artworkGradient:track.artworkGradient || '#0f172a,#334155',isUploaded:true}} meta="upload"/>)}</div>}</section>
       </div>
     </AppShell>
   );
-}
-
-export function getStaticPaths() {
-  return {
-    paths: nearbyListeners.map((listener) => ({ params: { id: listener.id } })),
-    fallback: false,
-  };
-}
-
-export function getStaticProps({ params }) {
-  return {
-    props: {
-      listener: getListenerById(params.id),
-    },
-  };
 }
