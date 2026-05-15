@@ -1,0 +1,90 @@
+# 🚀 NearBeat Firebase Auto-Deploy راهنما
+
+## ✅ راه‌اندازی دیپلوی خودکار
+
+### مرحله 1: Firebase Token تولید کن
+
+```bash
+firebase login:ci
+```
+
+این دستور یک **token طولانی** می‌دهد. آن را کپی کن.
+
+---
+
+### مرحله 2: GitHub Secrets را تنظیم کن
+
+به این آدرس برو:
+```
+https://github.com/pouriyakmi/NearBeat/settings/secrets/actions
+```
+
+**دکمه "New repository secret" کلیک کن** و این 7 secret را اضافه کن:
+
+| نام Secret | مقدار |
+|-----------|--------|
+| `FIREBASE_TOKEN` | (token از مرحله 1) |
+| `FIREBASE_API_KEY` | `AIzaSyA2yoQkYBeUQoN8pOqGwrq3D0FkyGnkCqg` |
+| `FIREBASE_AUTH_DOMAIN` | `nearbeat-c4506.firebaseapp.com` |
+| `FIREBASE_PROJECT_ID` | `nearbeat-c4506` |
+| `FIREBASE_STORAGE_BUCKET` | `nearbeat-c4506.firebasestorage.app` |
+| `FIREBASE_MESSAGING_SENDER_ID` | `821895577441` |
+| `FIREBASE_APP_ID` | `1:821895577441:web:06d4afbe7b8c92f4c74f20` |
+| `FIREBASE_MEASUREMENT_ID` | `G-DBQBMFX7JS` |
+
+---
+
+### مرحله 3: تایید دیپلوی
+
+هر بار که به شاخه `main` **push** کنی:
+
+به این آدرس برو و workflow را ببین:
+```
+https://github.com/pouriyakmi/NearBeat/actions
+```
+
+- اگر ✅ **سبز** شود = دیپلوی موفق!
+- اگر 🔴 **قرمز** شود = مشکلی هست
+
+---
+
+## 📋 Workflow چه‌کار می‌کند؟
+
+1. ✅ Dependencies نصب می‌کند (`npm install`)
+2. ✅ پروژه Build می‌کند (`npm run build`)
+3. ✅ Firebase Hosting به‌روزرسانی می‌شود
+4. ✅ دیپلوی نهایی انجام می‌شود
+
+---
+
+## 🌐 دسترسی به پروژه
+
+بعد از دیپلوی، پروژه در این آدرس‌ها فعال است:
+
+- 🔗 `https://nearbeat-c4506.web.app`
+- 🔗 `https://nearbeat-c4506.firebaseapp.com`
+
+---
+
+## 🆘 مشکلات رایج
+
+### ❌ Build ناموفق
+بررسی کن که `npm run build` به‌صورت محلی موفق است یا نه.
+
+### ❌ Deploy ناموفق
+بررسی کن که `FIREBASE_TOKEN` درست است.
+
+### ❌ Environment Variables
+مطمئن شو که تمام Secrets به‌درستی در GitHub اضافه شده‌اند.
+
+---
+
+## ✨ نکات مهم
+
+- 🔐 **هرگز** FIREBASE_TOKEN را publicly share نکن!
+- 📝 Secrets را فقط در GitHub Settings تنظیم کن
+- 🔄 Workflow هر بار **خودکار** اجرا می‌شود
+
+---
+
+**سوالی دارید؟** 🤔 [مراجعه به Firebase Docs](https://firebase.google.com/docs/hosting/github-integration)
