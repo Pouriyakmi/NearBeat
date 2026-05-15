@@ -1,10 +1,62 @@
+import { useEffect, useState } from 'react';
 import AppShell from '../components/AppShell';
-import FeedCard from '../components/FeedCard';
-import { useFeed } from '../hooks/useFeed';
+import PageHeader from '../components/PageHeader';
+import TrackRow from '../components/TrackRow';
+import { useRealTimeFeed } from '../hooks/useRealTimeFeed';
+import { useAuth } from '../context/AuthContext';
 
-export default function Feed() {
-  const { items, loading, error } = useFeed();
-  const rows = items.map((p) => ({ id: p.id, displayName: p.ownerName || 'Unknown', username: p.ownerUsername || 'listener', systemId: p.ownerSystemId || 'NB-UNKNOWN', avatar: (p.ownerName || 'NB').slice(0, 2).toUpperCase(), songTitle: p.title, artist: p.artist, postType: p.type || 'track', timeLabel: p.createdAt?.toDate ? p.createdAt.toDate().toLocaleString() : 'Just now', location: p.locationLabel || 'Unavailable' }));
+export default function FeedPage() {
+  const { items, loading, error } = useRealTimeFeed();
+  const { user } = useAuth();
+  const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  return <AppShell title="NearBeat | Feed"><section className="px-4 py-10 sm:px-6"><p className="text-xs font-bold uppercase tracking-[0.36em] text-pulse">live feed</p><h1 className="mt-4 text-4xl font-black sm:text-5xl">Real listener activity</h1></section>{loading && <div className="px-6 py-10 text-slate-400">Loading feed…</div>}{error && <div className="px-6 py-10 text-rose-400">Failed to load feed: {error}</div>}{!loading && !error && rows.length === 0 && <div className="px-6 py-10 text-slate-400">No posts yet. Upload a track to start.</div>}{!loading && !error && rows.length > 0 && <section className="grid gap-5 px-4 py-8 md:grid-cols-2 xl:grid-cols-3 sm:px-6">{rows.map((listener, index) => <FeedCard key={listener.id} listener={listener} index={index} />)}</section>}</AppShell>;
+  // Update timestamp whenever items change
+  useEffect(() => {
+    if (items.length > 0) {
+      setLastUpdate(new Date());
+    }
+  }, [items]);
+
+  return (
+    <AppShell title="Feed | NearBeat">
+      <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+        <PageHeader
+          eyebrow="Nearby"
+          title="Live Feed"
+          description="Discover music from people around you. Updates in real-time."
+        />
+
+        {loading && !items.length && (
+          <div className="mt-6 text-slate-400">Loading your feed…</div>
+        )}
+
+        {error && <div className="mt-6 text-rose-400">Error: {error}</div>}
+
+        {!loading && items.length === 0 && (
+          <div className="mt-6 text-slate-400">No tracks nearby yet.</div>
+        )}
+
+        <div className="mt-6 space-y-3">
+          {items.map((track) => (
+            <TrackRow
+              key={track.id}
+              track={{
+                title: track.title,
+                artist: track.artist,
+                artworkGradient: '#0f172a,#334155',
+                isUploaded: true,
+              }}
+              meta={track.ownerUid === user?.uid ? 'you' : track.ownerName}
+            />
+          ))}
+        </div>
+
+        {items.length > 0 && (
+          <p className="mt-4 text-xs text-slate-500">
+            Last updated: {lastUpdate.toLocaleTimeString()}
+          </p>
+        )}
+      </div>
+    </AppShell>
+  );
 }
