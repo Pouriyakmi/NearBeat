@@ -64,6 +64,29 @@ Build for production:
 npm run build
 ```
 
+## Install troubleshooting
+
+If `npm install` fails with a proxy or registry error, first confirm that npm is using the public registry:
+
+```bash
+npm config get registry
+```
+
+It should print:
+
+```txt
+https://registry.npmjs.org/
+```
+
+If a local corporate or sandbox proxy injects invalid npm proxy variables, remove those environment variables in your terminal and retry:
+
+```bash
+unset npm_config_http_proxy npm_config_https_proxy HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
+npm install
+```
+
+The repo also includes a small `.npmrc` so normal local installs default to the public npm registry with lockfile generation enabled.
+
 ## Beginner notes
 
 Start by editing the mock data in `data/mockUsers.js`. That file controls the people, songs, distances, notes, moods, and colors shown in the feed. After that, explore `components/FeedCard.js`, which turns one mock listener into a visual card.

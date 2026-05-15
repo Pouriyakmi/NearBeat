@@ -15,7 +15,10 @@ export default function FeedCard({ listener, index = 0 }) {
     >
       <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-pulse/10 blur-3xl transition group-hover:bg-pulse/20" />
       <div className="relative flex gap-4">
-        <div className={`relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl bg-gradient-to-br ${listener.albumCover} shadow-2xl`}>
+        <div
+          className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl shadow-2xl"
+          style={{ backgroundImage: `linear-gradient(135deg, ${listener.albumGradient})` }}
+        >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.5),transparent_24%),linear-gradient(135deg,transparent,rgba(0,0,0,0.45))]" />
           <div className="absolute bottom-3 left-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-xl">
             <Music2 size={18} />
@@ -24,7 +27,10 @@ export default function FeedCard({ listener, index = 0 }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br ${listener.avatarGlow} text-sm font-black text-night shadow-pinkGlow`}>
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-black text-night shadow-pinkGlow"
+                style={{ backgroundImage: `linear-gradient(135deg, ${listener.avatarGradient})` }}
+              >
                 {listener.avatar}
               </div>
               <div>
