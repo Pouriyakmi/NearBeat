@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { Compass, Home, Music2, Radio, Search, Settings, UserCircle } from 'lucide-react';
 
 const navItems = [
-  { href: '/', label: 'Feed', icon: Home },
+  { href: '/feed', label: 'Feed', icon: Home },
   { href: '/music', label: 'Music', icon: Music2 },
   { href: '/search', label: 'Search', icon: Search },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -24,7 +24,7 @@ export default function AppShell({ children, title = 'NearBeat' }) {
         <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(29,185,84,0.18),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,0.16),transparent_26%),linear-gradient(180deg,#080a10_0%,#0d111a_52%,#080a10_100%)]" />
         <div className="mx-auto grid min-h-screen w-full max-w-7xl lg:grid-cols-[248px_1fr]">
           <aside className="sticky top-0 hidden h-screen border-r border-white/8 bg-black/20 px-4 py-5 backdrop-blur-xl lg:block">
-            <Link href="/" className="flex items-center gap-3 rounded-3xl px-3 py-2">
+            <Link href="/feed" className="flex items-center gap-3 rounded-3xl px-3 py-2">
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950 shadow-[0_18px_60px_rgba(29,185,84,0.22)]">
                 <Radio size={22} />
               </span>
@@ -54,7 +54,7 @@ export default function AppShell({ children, title = 'NearBeat' }) {
                 <UserCircle className="text-emerald-300" size={24} />
                 <div>
                   <p className="text-sm font-bold">Phase 1 mock app</p>
-                  <p className="text-xs leading-5 text-slate-400">Ready for auth, realtime, uploads, and location later.</p>
+                  <p className="text-xs leading-5 text-slate-400">Auth-ready architecture with privacy-first distance controls.</p>
                 </div>
               </div>
             </div>
@@ -63,7 +63,7 @@ export default function AppShell({ children, title = 'NearBeat' }) {
           <section className="min-w-0 pb-24 lg:pb-0">
             <header className="sticky top-0 z-30 border-b border-white/8 bg-[#080a10]/82 px-4 py-3 backdrop-blur-xl sm:px-6 lg:hidden">
               <div className="flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2 font-black tracking-tight">
+                <Link href="/feed" className="flex items-center gap-2 font-black tracking-tight">
                   <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950">
                     <Radio size={19} />
                   </span>

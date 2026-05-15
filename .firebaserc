@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "nearbeat-c4506"
+  },
+  "targets": {
+    "nearbeat-c4506": {
+      "hosting": {
+        "nearbeat-c4506": [
+          "nearbeat-c4506"
+        ]
+      }
+    }
+  }
+}

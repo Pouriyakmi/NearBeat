@@ -1,98 +1,68 @@
 # NearBeat
 
-NearBeat is a beginner-friendly social music presence prototype. The app now opens directly into the live feed, because the feed is the core product experience: your current music, nearby listeners, shared tracks, and social discovery.
+NearBeat is a Next.js social music app with Firebase Authentication + Firestore + Firebase Hosting deployment.
 
-## Current Phase 1 scope
-
-Included now:
-
-- Mobile-first Next.js web app
-- Live feed as the default `/` route
-- Spotify-like `Now Playing` panel for the current mock user
-- Nearby listeners sorted by closest distance
-- Social/music profile pages at `/profile/[id]`
-- Music discovery/library page at `/music`
-- Search page at `/search`
-- Settings/privacy page at `/settings`
-- Realistic mock data for users, tracks, upload status, playlists, and listening progress
-
-Not included yet:
-
-- No PocketBase backend
-- No authentication
-- No realtime updates
-- No database
-- No location tracking
-
-Those features belong in later phases after the prototype feels good.
-
-## Tech stack
-
+## Stack
 - Next.js
 - React
-- TailwindCSS
-- Framer Motion
-- Lucide React icons
+- Tailwind CSS
+- Firebase Auth
+- Firestore
+- Firebase Hosting
 
-## Project structure
-
-```txt
-components/   Reusable UI pieces like cards, navigation, and page shell
-data/         Mock JSON-style data for nearby listeners
-hooks/        Small React hooks used by the UI
-pages/        Next.js pages for the landing page and feed
-styles/       Global Tailwind and app styles
-```
-
-## Run locally
-
-Install dependencies:
-
+## Local development
 ```bash
 npm install
-```
-
-Start the development server:
-
-```bash
 npm run dev
 ```
+Open: `http://localhost:3000`
 
-Open the app in your browser:
+## Environment variables
+Create `.env.local` from `.env.local.example`:
 
-```txt
-http://localhost:3000
+```bash
+cp .env.local.example .env.local
 ```
 
-Build for production:
+Fill with your Firebase Web config values:
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`
 
+## Firebase project
+- Project ID: `nearbeat-c4506`
+- Hosting site: `nearbeat-c4506`
+
+Configured files:
+- `.firebaserc`
+- `firebase.json`
+
+## Build check
 ```bash
 npm run build
 ```
 
-## Install troubleshooting
-
-If `npm install` fails with a proxy or registry error, first confirm that npm is using the public registry:
-
+## Deploy to Firebase Hosting
+Install Firebase CLI if needed:
 ```bash
-npm config get registry
+npm install -g firebase-tools
 ```
 
-It should print:
-
-```txt
-https://registry.npmjs.org/
-```
-
-If a local corporate or sandbox proxy injects invalid npm proxy variables, remove those environment variables in your terminal and retry:
-
+Login:
 ```bash
-unset npm_config_http_proxy npm_config_https_proxy HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
-npm install
+firebase login
 ```
 
-The repo also includes a small `.npmrc` so normal local installs default to the public npm registry with lockfile generation enabled.
+Deploy:
+```bash
+firebase deploy
+```
 
-## Beginner notes
-
-Start by editing the mock data in `data/mockUsers.js`. That file controls the people, songs, distances, notes, moods, and colors shown in the feed. After that, explore `components/FeedCard.js`, which turns one mock listener into a visual card.
+## Notes
+- UI/routes remain unchanged.
+- Auth + Firestore integrations are preserved.
+- Deployment is Firebase Hosting compatible (framework-aware hosting config).

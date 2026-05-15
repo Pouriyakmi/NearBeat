@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "site": "nearbeat-c4506",
+    "source": ".",
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
+  }
+}
