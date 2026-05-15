@@ -7,12 +7,16 @@ export function usePlaylists() {
 
   useEffect(() => {
     let mounted = true;
-    listPlaylists().then((rows) => {
-      if (mounted) {
-        setPlaylists(rows);
-        setLoading(false);
-      }
-    });
+    listPlaylists()
+      .then((rows) => {
+        if (mounted) setPlaylists(rows);
+      })
+      .catch((error) => {
+        console.error('Failed to load playlists', error);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     return () => {
       mounted = false;
     };

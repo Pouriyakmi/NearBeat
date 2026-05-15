@@ -1,29 +1,46 @@
-import { motion } from 'framer-motion';
 import { Map } from 'lucide-react';
-import FeedCard from '../components/FeedCard';
 import AppShell from '../components/AppShell';
-import SectionLabel from '../components/SectionLabel';
+import FeedCard from '../components/FeedCard';
+import { useFeed } from '../hooks/useFeed';
+import { useUsers } from '../hooks/useUsers';
 import { usePrivacy } from '../context/PrivacyContext';
-import { liveStats, nearbyListeners } from '../data/mockUsers';
 
 export default function Feed() {
   const { privacy } = usePrivacy();
+  const { users, loading: usersLoading } = useUsers();
+  const { items, loading: feedLoading } = useFeed();
+
+  const listeners = users.map((u) => ({
+    id: u.uid || u.id,
+    displayName: u.displayName || u.username || 'NearBeat User',
+    username: u.username || 'listener',
+    avatar: u.avatar || 'NB',
+    avatarGradient: '#1ed760, #39d0ff',
+    distance: u.approximateLocation || 'Nearby',
+    note: u.bio || 'listening now',
+    mood: 'live',
+    live: true,
+    lastActive: 'now',
+    nowPlaying: {
+      title: items.find((x) => x.ownerUid === (u.uid || u.id))?.title || 'No track yet',
+      artist: items.find((x) => x.ownerUid === (u.uid || u.id))?.artist || 'NearBeat',
+      artworkGradient: '#22d3ee, #2563eb, #0f172a',
+      progress: 44,
+      currentTime: '1:10',
+      duration: '3:40',
+      isUploaded: true,
+    },
+  }));
 
   return (
     <AppShell title="NearBeat | Nearby feed">
       <section className="px-4 py-10 sm:px-6">
         <p className="text-xs font-bold uppercase tracking-[0.36em] text-pulse">nearby feed</p>
         <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">People around you listening right now.</h1>
-        <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">We only show approximate distance, not your real location. No coordinates, no map pins, no exact address.</p>
+        <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">Current location state: {privacy.approximateLocation}</p>
       </section>
-      <section className="px-4 sm:px-6">
-        <div className="glass-card rounded-[2rem] p-5">
-          <div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neonBlue/10 text-neonBlue"><Map size={22} /></div><div><p className="font-bold">Privacy-first location layer</p><p className="text-sm text-slate-400">Current location state: {privacy.approximateLocation}</p></div></div>
-          <div className="mt-5 grid grid-cols-3 gap-3">{liveStats.map((stat) => <div key={stat.label} className="rounded-2xl bg-white/5 p-3 text-center"><p className="text-xl font-black text-white">{stat.value}</p><p className="mt-1 text-[0.62rem] uppercase tracking-[0.16em] text-slate-500">{stat.label}</p></div>)}</div>
-        </div>
-      </section>
-      <section className="grid gap-5 px-4 py-8 md:grid-cols-2 xl:grid-cols-3 sm:px-6">{nearbyListeners.map((listener, index) => <FeedCard key={listener.id} listener={listener} index={index} />)}</section>
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }} className="px-4 pb-20 sm:px-6"><div className="glass-card rounded-[2.5rem] p-8 text-center sm:p-10"><SectionLabel eyebrow="architecture ready" title="Frontend prepared for auth, OTP, sessions, privacy, and realtime." description="All backend calls are mocked today, but the flow is intentionally structured for secure integration later." /></div></motion.section>
+      <section className="px-4 sm:px-6"><div className="glass-card rounded-[2rem] p-5"><div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neonBlue/10 text-neonBlue"><Map size={22} /></div><div><p className="font-bold">Live Firestore feed</p><p className="text-sm text-slate-400">{items.length} posts synced</p></div></div></div></section>
+      {usersLoading || feedLoading ? <div className="px-6 py-10 text-slate-400">Loading live feed...</div> : listeners.length === 0 ? <div className="px-6 py-10 text-slate-400">No listeners yet. Create users in Firestore.</div> : <section className="grid gap-5 px-4 py-8 md:grid-cols-2 xl:grid-cols-3 sm:px-6">{listeners.map((listener, index) => <FeedCard key={listener.id} listener={listener} index={index} />)}</section>}
     </AppShell>
   );
 }
