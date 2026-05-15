@@ -1,53 +1,30 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth';
-import { auth } from '../lib/firebase';
 
 const AuthContext = createContext(null);
+const STORAGE_KEY = 'nearbeat_session_v1';
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setSession(
-        user
-          ? {
-              uid: user.uid,
-              email: user.email,
-              phoneNumber: user.phoneNumber || null,
-            }
-          : null,
-      );
-      setReady(true);
-    });
-    return () => unsub();
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null;
+    if (saved) setSession(JSON.parse(saved));
+    setReady(true);
   }, []);
 
-  const loginWithEmail = async ({ email, password }) => {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    return result.user;
+  const login = ({ identifier, method }) => {
+    const next = { identifier, method, loggedInAt: new Date().toISOString() };
+    setSession(next);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   };
 
-  const registerWithEmail = async ({ email, password }) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    return result.user;
+  const logout = () => {
+    setSession(null);
+    window.localStorage.removeItem(STORAGE_KEY);
   };
 
-  const logout = async () => {
-    await signOut(auth);
-  };
-
-  const value = useMemo(
-    () => ({ session, ready, loginWithEmail, registerWithEmail, logout, isAuthed: Boolean(session) }),
-    [session, ready],
-  );
-
+  const value = useMemo(() => ({ session, ready, login, logout, isAuthed: Boolean(session) }), [session, ready]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
