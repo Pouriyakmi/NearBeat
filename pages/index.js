@@ -1,56 +1,28 @@
 import { useState } from 'react';
-import { Lock, Mail, MessageSquare } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const [method, setMethod] = useState('phone');
-  const [identifier, setIdentifier] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState('');
-  const { login } = useAuth();
+  const [mode, setMode] = useState('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { loginWithEmail, signupWithEmail, loginWithGoogle } = useAuth();
 
-  const submitIdentity = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setOtpSent(true);
+    setError('');
+    setLoading(true);
+    try {
+      if (mode === 'login') await loginWithEmail(email, password);
+      else await signupWithEmail(email, password);
+    } catch (err) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const submitOtp = (e) => {
-    e.preventDefault();
-    login({ identifier: identifier || 'demo-user', method });
-  };
-
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-[#070910] px-4 text-white">
-      <section className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-300">NearBeat access</p>
-        <h1 className="mt-3 text-3xl font-black">Login or create account</h1>
-        <p className="mt-3 text-sm text-slate-300">Phone-first authentication with OTP flow (mock now, backend-ready later).</p>
-
-        <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-black/30 p-1 text-sm">
-          <button onClick={() => setMethod('phone')} className={`rounded-xl px-3 py-2 ${method === 'phone' ? 'bg-white text-black' : 'text-slate-300'}`}>Phone</button>
-          <button onClick={() => setMethod('email')} className={`rounded-xl px-3 py-2 ${method === 'email' ? 'bg-white text-black' : 'text-slate-300'}`}>Email</button>
-        </div>
-
-        {!otpSent ? (
-          <form className="mt-5 space-y-3" onSubmit={submitIdentity}>
-            <label className="block text-sm text-slate-300">{method === 'phone' ? 'Phone number' : 'Email address'}</label>
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-              {method === 'phone' ? <MessageSquare size={17} /> : <Mail size={17} />}
-              <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="w-full bg-transparent outline-none" placeholder={method === 'phone' ? '+1 234 567 8901' : 'you@example.com'} />
-            </div>
-            <button className="w-full rounded-2xl bg-emerald-300 px-4 py-3 font-bold text-black">Send OTP (mock)</button>
-          </form>
-        ) : (
-          <form className="mt-5 space-y-3" onSubmit={submitOtp}>
-            <label className="block text-sm text-slate-300">Enter verification code</label>
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-              <Lock size={17} />
-              <input value={otp} onChange={(e) => setOtp(e.target.value)} className="w-full bg-transparent outline-none" placeholder="000000" />
-            </div>
-            <button className="w-full rounded-2xl bg-emerald-300 px-4 py-3 font-bold text-black">Verify & continue</button>
-          </form>
-        )}
-      </section>
-    </main>
-  );
+  return <main className="flex min-h-screen items-center justify-center bg-[#070910] px-4 text-white"><section className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-300">NearBeat access</p><h1 className="mt-3 text-3xl font-black">{mode === 'login' ? 'Login' : 'Create account'}</h1><div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-black/30 p-1 text-sm"><button onClick={() => setMode('login')} className={`rounded-xl px-3 py-2 ${mode === 'login' ? 'bg-white text-black' : 'text-slate-300'}`}>Login</button><button onClick={() => setMode('signup')} className={`rounded-xl px-3 py-2 ${mode === 'signup' ? 'bg-white text-black' : 'text-slate-300'}`}>Sign up</button></div><form className="mt-5 space-y-3" onSubmit={onSubmit}><label className="block text-sm text-slate-300">Email address</label><div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-3"><Mail size={17} /><input value={email} type="email" onChange={(e) => setEmail(e.target.value)} className="w-full bg-transparent outline-none" placeholder="you@example.com" required /></div><label className="block text-sm text-slate-300">Password</label><input value={password} type="password" minLength={6} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-3 outline-none" placeholder="******" required />{error && <p className="text-sm text-rose-400">{error}</p>}<button disabled={loading} className="w-full rounded-2xl bg-emerald-300 px-4 py-3 font-bold text-black">{loading ? 'Please wait...' : mode === 'login' ? 'Login with email' : 'Create account'}</button></form><button onClick={loginWithGoogle} className="mt-3 w-full rounded-2xl border border-white/20 px-4 py-3 font-bold">Continue with Google</button></section></main>;
 }
