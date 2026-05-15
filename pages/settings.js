@@ -2,27 +2,16 @@ import { Eye, MapPin, Radio, Shield, Wifi } from 'lucide-react';
 import AppShell from '../components/AppShell';
 import PageHeader from '../components/PageHeader';
 import { usePrivacy } from '../context/PrivacyContext';
-import { useAuth } from '../context/AuthContext';
-import { updateUserLocation } from '../services/firestore';
 
 export default function SettingsPage() {
   const { privacy, updatePrivacy, refreshLocation } = usePrivacy();
-  const { session } = useAuth();
-
-  const captureBrowserLocation = () => {
-    if (!navigator.geolocation || !session) return;
-    navigator.geolocation.getCurrentPosition(async () => {
-      refreshLocation();
-      await updateUserLocation(session.uid, 'Nearby');
-    });
-  };
 
   return (
     <AppShell title="Settings | NearBeat">
       <div className="mx-auto w-full max-w-4xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
         <PageHeader eyebrow="Settings" title="Privacy and location controls" description="We only show approximate distance, never exact location. You are always in control." />
         <section className="mt-7 space-y-3">
-          <button onClick={captureBrowserLocation} className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
+          <button onClick={refreshLocation} className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
             <p className="font-bold text-white">Update my location</p><p className="text-sm text-slate-400">Last known approximation: {privacy.approximateLocation}</p>
           </button>
           <button onClick={() => updatePrivacy({ hideDistance: !privacy.hideDistance })} className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left"><p className="font-bold text-white">Hide distance temporarily</p><p className="text-sm text-slate-400">Status: {privacy.hideDistance ? 'Hidden' : 'Visible'}</p></button>
