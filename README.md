@@ -22,27 +22,25 @@ Not included yet:
 - No authentication
 - No realtime updates
 - No database
-- No actual geolocation
-- No file upload or streaming pipeline
+- No location tracking
 
-Those systems are intentionally left for later phases so the project stays understandable while the product direction becomes clear.
+Those features belong in later phases after the prototype feels good.
 
-## Product direction
+## Tech stack
 
-NearBeat should feel like:
-
-- Telegram simplicity for navigation and social UI
-- Spotify atmosphere for listening, artwork, and playback state
-- Discord/Zenly-style presence for live nearby activity
-
-The design avoids a marketing-first landing page and focuses on a believable app experience.
+- Next.js
+- React
+- TailwindCSS
+- Framer Motion
+- Lucide React icons
 
 ## Project structure
 
 ```txt
-components/   Reusable app shell, playback panels, listener rows, track rows, page headers
-pages/        Next.js routes: /, /profile/[id], /music, /search, /settings
-data/         Mock JSON-style product data for future backend replacement
+components/   Reusable UI pieces like cards, navigation, and page shell
+data/         Mock JSON-style data for nearby listeners
+hooks/        Small React hooks used by the UI
+pages/        Next.js pages for the landing page and feed
 styles/       Global Tailwind and app styles
 ```
 
@@ -72,12 +70,29 @@ Build for production:
 npm run build
 ```
 
-Start the production build:
+## Install troubleshooting
+
+If `npm install` fails with a proxy or registry error, first confirm that npm is using the public registry:
 
 ```bash
-npm run start
+npm config get registry
 ```
+
+It should print:
+
+```txt
+https://registry.npmjs.org/
+```
+
+If a local corporate or sandbox proxy injects invalid npm proxy variables, remove those environment variables in your terminal and retry:
+
+```bash
+unset npm_config_http_proxy npm_config_https_proxy HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
+npm install
+```
+
+The repo also includes a small `.npmrc` so normal local installs default to the public npm registry with lockfile generation enabled.
 
 ## Beginner notes
 
-Start by editing `data/mockUsers.js`. That file controls the current user, nearby listeners, tracks, upload/playable status, playlists, distances, and profile content. The UI is intentionally split into small components so backend, realtime, auth, geolocation, uploads, and playlists can be connected later without rewriting the whole app.
+Start by editing the mock data in `data/mockUsers.js`. That file controls the people, songs, distances, notes, moods, and colors shown in the feed. After that, explore `components/FeedCard.js`, which turns one mock listener into a visual card.

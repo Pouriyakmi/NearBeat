@@ -4,13 +4,12 @@ module.exports = {
     './pages/**/*.{js,jsx}',
     './components/**/*.{js,jsx}',
     './hooks/**/*.{js,jsx}',
-    './data/**/*.{js,jsx}',
   ],
   theme: {
     extend: {
       colors: {
-        night: '#080a10',
-        pulse: '#1db954',
+        night: '#05060f',
+        pulse: '#1ed760',
         neonPink: '#ff3df2',
         neonBlue: '#39d0ff',
         violet: '#8b5cf6',
