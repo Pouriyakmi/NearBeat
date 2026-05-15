@@ -16,18 +16,10 @@ function RouteGuard({ children }) {
     if (isAuthed && router.pathname === '/') router.replace('/feed');
   }, [isAuthed, ready, router]);
 
-  if (!ready) return null;
+  if (!ready) return <main className="grid min-h-screen place-items-center bg-[#080a10] text-slate-300">Checking authentication…</main>;
   return children;
 }
 
 export default function App({ Component, pageProps }) {
-  return (
-    <AuthProvider>
-      <PrivacyProvider>
-        <RouteGuard>
-          <Component {...pageProps} />
-        </RouteGuard>
-      </PrivacyProvider>
-    </AuthProvider>
-  );
+  return <AuthProvider><PrivacyProvider><RouteGuard><Component {...pageProps} /></RouteGuard></PrivacyProvider></AuthProvider>;
 }

@@ -1,7 +1,8 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Compass, Home, Music2, Radio, Search, Settings, UserCircle } from 'lucide-react';
+import { Compass, Home, LogOut, Music2, Radio, Search, Settings, UserCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const navItems = [
   { href: '/feed', label: 'Feed', icon: Home },
@@ -12,6 +13,7 @@ const navItems = [
 
 export default function AppShell({ children, title = 'NearBeat' }) {
   const router = useRouter();
+  const { profile, logout } = useAuth();
 
   return (
     <>
@@ -53,10 +55,11 @@ export default function AppShell({ children, title = 'NearBeat' }) {
               <div className="flex items-center gap-3">
                 <UserCircle className="text-emerald-300" size={24} />
                 <div>
-                  <p className="text-sm font-bold">Phase 1 mock app</p>
-                  <p className="text-xs leading-5 text-slate-400">Auth-ready architecture with privacy-first distance controls.</p>
+                  <p className="text-sm font-bold">{profile?.displayName || "NearBeat User"}</p>
+                  <p className="text-xs leading-5 text-slate-400">{profile?.systemId || ""}</p>
                 </div>
               </div>
+              <button onClick={logout} className="mt-3 inline-flex items-center gap-2 text-xs text-slate-300"><LogOut size={14} />Sign out</button>
             </div>
           </aside>
 

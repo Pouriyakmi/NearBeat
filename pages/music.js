@@ -1,33 +1,33 @@
-import { ListMusic, Search, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { Upload } from 'lucide-react';
 import AppShell from '../components/AppShell';
 import PageHeader from '../components/PageHeader';
 import TrackRow from '../components/TrackRow';
 import { useFeed } from '../hooks/useFeed';
-import { usePlaylists } from '../hooks/usePlaylists';
-import { createPost } from '../services/firestore';
 import { useAuth } from '../context/AuthContext';
+import { usePrivacy } from '../context/PrivacyContext';
+import { createMusicPost } from '../services/firestore';
+import { uploadTrackFile } from '../services/storage';
 
 export default function MusicPage() {
-  const { items } = useFeed();
-  const { playlists } = usePlaylists();
+  const { items, loading, error } = useFeed();
   const { user, profile } = useAuth();
+  const { refreshLocation } = usePrivacy();
+  const [busy, setBusy] = useState(false);
 
-  const handleUpload = async () => {
-    const title = prompt('Track title');
-    const artist = prompt('Artist name');
-    if (!title || !artist) return;
-    await createPost({ title, artist, ownerUid: user.uid, ownerName: profile?.displayName || user.email || 'listener' });
-    alert('Uploaded to feed');
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    const title = prompt('Track title') || file.name;
+    const artist = prompt('Artist name') || profile?.displayName || 'Unknown';
+    setBusy(true);
+    try {
+      const loc = await refreshLocation();
+      const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file);
+      await createMusicPost({ title, artist, audioUrl: downloadURL, storagePath, ownerUid: user.uid, ownerName: profile?.displayName || user.email, ownerUsername: profile?.username || 'listener', ownerSystemId: profile?.systemId || 'NB-UNKNOWN', locationLabel: loc ? `${loc.lat}, ${loc.lng}` : 'Unavailable', locationMeta: loc || null, type: 'track' });
+      alert('Track uploaded.');
+    } finally { setBusy(false); e.target.value = ''; }
   };
 
-  return (
-    <AppShell title="Music library | NearBeat">
-      <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
-        <PageHeader eyebrow="Music" title="Shared music library" description="Real posts + playlists from Firestore." action={<button onClick={handleUpload} className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-slate-950" type="button"><Upload size={16} /> Upload track</button>} />
-        <label className="mt-6 flex items-center gap-3 rounded-3xl border border-white/8 bg-white/[0.055] px-4 py-3 text-slate-400"><Search size={19} /><input className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500" placeholder="Search tracks" /></label>
-        <section className="mt-7 grid gap-5 lg:grid-cols-[1fr_0.9fr]"><div><h2 className="mb-3 text-lg font-black text-white">Trending nearby</h2><div className="space-y-3">{items.map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: track.artworkGradient || '#0f172a,#334155', isUploaded: true }} meta={track.ownerName || 'listener'} />)}</div></div><div><h2 className="mb-3 text-lg font-black text-white">Playlists</h2><div className="space-y-3">{playlists.map((p) => <article key={p.id} className="rounded-2xl border border-white/8 bg-white/[0.04] p-3"><p className="font-bold">{p.title}</p><p className="text-sm text-slate-400">{p.description}</p></article>)}</div></div></section>
-        <section className="mt-8"><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-lg font-black text-white"><ListMusic size={18} /> Your uploads</h2></div><div className="space-y-3">{items.filter((x) => x.ownerUid === user?.uid).map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: track.artworkGradient || '#0f172a,#334155', isUploaded: true }} meta="you" />)}</div></section>
-      </div>
-    </AppShell>
-  );
+  return <AppShell title="Music | NearBeat"><div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><PageHeader eyebrow="Music" title="Shared music library" description="Upload and discover real tracks from Firebase." action={<label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-slate-950"><Upload size={16} /> {busy ? 'Uploading…' : 'Upload track'}<input type="file" accept="audio/*" hidden onChange={handleUpload} disabled={busy} /></label>} />{loading && <p className="mt-6 text-slate-400">Loading tracks…</p>}{error && <p className="mt-6 text-rose-400">{error}</p>}<div className="mt-6 space-y-3">{items.map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: '#0f172a,#334155', isUploaded: true }} meta={track.ownerUid === user?.uid ? 'you' : track.ownerName} />)}</div></div></AppShell>;
 }
