@@ -82,9 +82,6 @@ export default function MusicPage() {
         originalMessage: err?.originalMessage,
         originalError: err?.originalError,
       });
-      if (err?.code === 'storage/cors') {
-        console.error('[music] storage CORS setup required for origin:', window?.location?.origin);
-      }
       setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
     } finally {
       setProgress(0);
