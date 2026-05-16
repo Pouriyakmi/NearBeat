@@ -6,10 +6,10 @@ function ensureStorage() {
   return storage;
 }
 
-export function uploadTrackFile(uid, file, onProgress) {
+export function uploadTrackFile(uid, file, onProgress, metadata = {}) {
   return new Promise((resolve, reject) => {
     const fileRef = ref(ensureStorage(), `tracks/${uid}/${Date.now()}-${file.name}`);
-    const task = uploadBytesResumable(fileRef, file, { contentType: file.type || 'audio/mpeg' });
+    const task = uploadBytesResumable(fileRef, file, { contentType: file.type || 'audio/mpeg', customMetadata: Object.fromEntries(Object.entries(metadata).filter(([, v]) => v)) });
 
     task.on(
       'state_changed',
