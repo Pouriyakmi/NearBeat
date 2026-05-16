@@ -20,15 +20,19 @@ export default function MusicPage() {
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-
-    const title = form.title || file.name;
+    const title = form.title || file.name.replace(/\.[^/.]+$/, '');
     const artist = form.artist || profile?.displayName || 'Unknown';
 
     setBusy(true);
     setProgress(0);
     try {
       const loc = await refreshLocation();
-      const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, setProgress);
+      const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, setProgress, {
+        title,
+        artist,
+        album: form.album,
+        genre: form.genre,
+      });
       await createMusicPost({
         title,
         artist,
@@ -37,6 +41,7 @@ export default function MusicPage() {
         coverImage: form.imageUrl || '',
         fileName: file.name,
         fileType: file.type,
+        fileSize: file.size,
         audioUrl: downloadURL,
         storagePath,
         ownerUid: user.uid,
@@ -67,6 +72,6 @@ export default function MusicPage() {
         {['title', 'artist', 'album', 'genre', 'imageUrl'].map((key) => <input key={key} value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} placeholder={key === 'imageUrl' ? 'Cover image URL' : key[0].toUpperCase() + key.slice(1)} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none" />)}
       </div>
       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-slate-950"><Upload size={16} /> {busy ? `Uploading ${progress}%` : 'Upload track'}<input type="file" accept="audio/*" hidden onChange={handleUpload} disabled={busy} /></label>
-      {busy && <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10"><div className="h-full bg-emerald-400 transition-all" style={{ width: `${progress}%` }} /></div>}
+      {busy && <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10"><div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${progress}%` }} /></div>}
     </section>{loading && <p className="mt-6 text-slate-400">Loading tracks…</p>}{error && <p className="mt-6 text-rose-400">{error}</p>}<div className="mt-6 space-y-3">{myTracks.map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: '#0f172a,#334155', isUploaded: true }} meta={track.album || 'upload'} />)}</div></div></AppShell>;
 }
