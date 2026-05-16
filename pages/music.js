@@ -84,11 +84,6 @@ export default function MusicPage() {
         originalMessage: err?.originalMessage,
         originalError: err?.originalError,
       });
-      if (err?.code === 'storage/cors') {
-        const origin = window?.location?.origin || 'https://nearbeat-c4506.firebaseapp.com';
-        setUploadHelp(`Run this once in terminal: gsutil cors set cors.json gs://nearbeat-c4506.appspot.com (cors.json must include origin ${origin}). Then redeploy and hard refresh.`);
-        console.error('[music] storage CORS setup required for origin:', window?.location?.origin);
-      }
       setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
     } finally {
       setProgress(0);
