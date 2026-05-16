@@ -3,21 +3,11 @@ import { storage } from '../lib/firebase';
 
 const UPLOAD_STALL_TIMEOUT_MS = 30000;
 
-function normalizeBucketName(bucket = '') {
-  return String(bucket).replace(/^gs:\/\//, '').trim();
-}
-
-function isLikelyValidBucket(bucket = '') {
-  const normalized = normalizeBucketName(bucket);
-  if (!normalized) return false;
-  return normalized.endsWith('.appspot.com') || normalized.endsWith('.firebasestorage.app');
-}
-
 function ensureStorage() {
   if (!storage) throw new Error('Firebase Storage is not configured.');
   const bucket = storage?.app?.options?.storageBucket || '';
-  if (!isLikelyValidBucket(bucket)) {
-    throw new Error('Firebase Storage bucket is missing or invalid. Check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET (examples: your-project.appspot.com or your-project.firebasestorage.app).');
+  if (!bucket || !bucket.includes('.appspot.com')) {
+    throw new Error('Firebase Storage bucket is missing or invalid. Check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET (example: your-project.appspot.com).');
   }
   return storage;
 }
