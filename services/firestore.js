@@ -76,3 +76,16 @@ export async function searchUsers(term) {
   snaps.forEach((s) => s.docs.forEach((d) => map.set(d.id, { id: d.id, ...d.data() })));
   return Array.from(map.values());
 }
+
+export async function setFavoriteTrack(uid, trackId, trackData) {
+  return setDoc(doc(ensureDb(), 'users', uid, 'favorites', trackId), { ...trackData, pinnedAt: serverTimestamp() }, { merge: true });
+}
+
+export async function listFavoriteTracks(uid) {
+  const snap = await getDocs(query(collection(ensureDb(), 'users', uid, 'favorites'), limit(30)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function createPlaylist(uid, payload) {
+  return addDoc(collection(ensureDb(), 'playlists'), { ...payload, ownerUid: uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+}
