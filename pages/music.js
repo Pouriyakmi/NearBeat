@@ -9,6 +9,16 @@ import { usePrivacy } from '../context/PrivacyContext';
 import { createMusicPost } from '../services/firestore';
 import { uploadTrackFile } from '../services/storage';
 
+const LOCATION_TIMEOUT_MS = 7000;
+
+async function safeRefreshLocation(refreshLocation) {
+  if (!refreshLocation) return null;
+  return Promise.race([
+    refreshLocation(),
+    new Promise((resolve) => setTimeout(() => resolve(null), LOCATION_TIMEOUT_MS)),
+  ]);
+}
+
 export default function MusicPage() {
   const { items, loading, error } = useFeed();
   const { user, profile } = useAuth();
@@ -16,6 +26,7 @@ export default function MusicPage() {
   const [progress, setProgress] = useState(0);
   const [uploadState, setUploadState] = useState('idle');
   const [uploadMessage, setUploadMessage] = useState('');
+  const [uploadHelp, setUploadHelp] = useState('');
   const [form, setForm] = useState({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
 
   const handleUpload = async (e) => {
@@ -25,10 +36,13 @@ export default function MusicPage() {
     const artist = form.artist || profile?.displayName || 'Unknown';
 
     setUploadMessage('Starting upload…');
+    setUploadHelp('');
     setUploadState('uploading');
     setProgress(1);
     try {
-      const loc = await refreshLocation();
+      setUploadMessage('Checking location permission…');
+      const loc = await safeRefreshLocation(refreshLocation);
+      setUploadMessage('Uploading file to Firebase Storage…');
       const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
         setProgress(nextProgress);
         if (rawState === 'paused') setUploadState('uploading');
@@ -64,6 +78,17 @@ export default function MusicPage() {
       setForm({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
     } catch (err) {
       setUploadState('error');
+      console.error('[music] upload failed', {
+        code: err?.code,
+        message: err?.message,
+        originalMessage: err?.originalMessage,
+        originalError: err?.originalError,
+      });
+      if (err?.code === 'storage/cors') {
+        const origin = window?.location?.origin || 'https://nearbeat-c4506.firebaseapp.com';
+        setUploadHelp(`Run this once in terminal: gsutil cors set cors.json gs://nearbeat-c4506.appspot.com (cors.json must include origin ${origin}). Then redeploy and hard refresh.`);
+        console.error('[music] storage CORS setup required for origin:', window?.location?.origin);
+      }
       setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
     } finally {
       setProgress(0);
@@ -82,5 +107,6 @@ export default function MusicPage() {
       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-slate-950"><Upload size={16} /> {uploadState === 'uploading' || uploadState === 'finalizing' ? `Uploading ${progress}%` : 'Upload track'}<input type="file" accept="audio/*" hidden onChange={handleUpload} disabled={uploadState === 'uploading' || uploadState === 'finalizing'} /></label>
       {(uploadState === 'uploading' || uploadState === 'finalizing') && <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10"><div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${progress}%` }} /></div>}
       {uploadMessage && <p className={`mt-3 text-sm ${uploadState === 'error' ? 'text-rose-400' : uploadState === 'success' ? 'text-emerald-300' : 'text-slate-300'}`}>{uploadMessage}</p>}
+      {uploadHelp && <p className="mt-2 break-all rounded-xl border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">{uploadHelp}</p>}
     </section>{loading && <p className="mt-6 text-slate-400">Loading tracks…</p>}{error && <p className="mt-6 text-rose-400">{error}</p>}<div className="mt-6 space-y-3">{myTracks.map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: '#0f172a,#334155', isUploaded: true }} meta={track.album || 'upload'} />)}</div></div></AppShell>;
 }

@@ -27,7 +27,7 @@ https://github.com/pouriyakmi/NearBeat/settings/secrets/actions
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | `AIzaSyA2yoQkYBeUQoN8pOqGwrq3D0FkyGnkCqg` |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `nearbeat-c4506.firebaseapp.com` |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `nearbeat-c4506` |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `nearbeat-c4506.firebasestorage.app` |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `nearbeat-c4506.appspot.com` |
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `821895577441` |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | `1:821895577441:web:06d4afbe7b8c92f4c74f20` |
 | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | `G-DBQBMFX7JS` |
@@ -67,6 +67,43 @@ https://github.com/pouriyakmi/NearBeat/actions
 ---
 
 ## 🆘 مشکلات رایج
+
+### ❌ Upload روی Starting upload می‌ماند / خطای CORS در Console
+
+اگر خطایی شبیه زیر دیدی:
+- `blocked by CORS policy`
+- `preflight request doesn't pass access control check`
+
+باید CORS روی Firebase Storage bucket تنظیم شود.
+
+1) فایل `cors.json` بساز:
+
+```json
+[
+  {
+    "origin": ["https://nearbeat-c4506.firebaseapp.com", "https://nearbeat-c4506.web.app", "http://localhost:3000"],
+    "method": ["GET", "POST", "PUT", "HEAD", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization", "x-goog-resumable"],
+    "maxAgeSeconds": 3600
+  }
+]
+```
+
+2) CORS را روی bucket درست اعمال کن (برای Firebase SDK معمولاً `appspot.com`):
+
+```bash
+gsutil cors set cors.json gs://nearbeat-c4506.appspot.com
+```
+
+3) بعد از اعمال CORS حدود 1 تا 5 دقیقه صبر کن، سپس hard refresh بزن و دوباره تست کن.
+
+4) برای اطمینان، CORS فعلی bucket را بخوان:
+
+```bash
+gsutil cors get gs://nearbeat-c4506.appspot.com
+```
+
+باید حتماً `https://nearbeat-c4506.firebaseapp.com` و `https://nearbeat-c4506.web.app` داخل `origin` دیده شوند.
 
 ### ❌ Build ناموفق
 بررسی کن که `npm run build` به‌صورت محلی موفق است یا نه.

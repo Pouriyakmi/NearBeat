@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 
 const PrivacyContext = createContext(null);
+const GEO_TIMEOUT_MS = 6000;
 
 export function PrivacyProvider({ children }) {
   const [privacy, setPrivacy] = useState({ hideDistance: false, visibleTo: 'nearby', approximateLocation: 'Unavailable', locationMeta: null, lastUpdatedAt: null });
@@ -20,7 +21,7 @@ export function PrivacyProvider({ children }) {
       }, () => {
         updatePrivacy({ approximateLocation: 'Location denied', locationMeta: null, lastUpdatedAt: new Date().toISOString() });
         resolve(null);
-      });
+      }, { enableHighAccuracy: false, timeout: GEO_TIMEOUT_MS, maximumAge: 120000 });
     });
   };
 
