@@ -68,6 +68,35 @@ https://github.com/pouriyakmi/NearBeat/actions
 
 ## 🆘 مشکلات رایج
 
+### ❌ Upload روی Starting upload می‌ماند / خطای CORS در Console
+
+اگر خطایی شبیه زیر دیدی:
+- `blocked by CORS policy`
+- `preflight request doesn't pass access control check`
+
+باید CORS روی Firebase Storage bucket تنظیم شود.
+
+1) فایل `cors.json` بساز:
+
+```json
+[
+  {
+    "origin": ["https://nearbeat-c4506.firebaseapp.com", "https://nearbeat-c4506.web.app", "http://localhost:3000"],
+    "method": ["GET", "POST", "PUT", "HEAD", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization", "x-goog-resumable"],
+    "maxAgeSeconds": 3600
+  }
+]
+```
+
+2) CORS را روی bucket اعمال کن:
+
+```bash
+gsutil cors set cors.json gs://nearbeat-c4506.firebasestorage.app
+```
+
+اگر bucket شما `appspot.com` است، همان نام را جایگزین کن.
+
 ### ❌ Build ناموفق
 بررسی کن که `npm run build` به‌صورت محلی موفق است یا نه.
 

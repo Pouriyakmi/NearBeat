@@ -9,6 +9,16 @@ import { usePrivacy } from '../context/PrivacyContext';
 import { createMusicPost } from '../services/firestore';
 import { uploadTrackFile } from '../services/storage';
 
+const LOCATION_TIMEOUT_MS = 7000;
+
+async function safeRefreshLocation(refreshLocation) {
+  if (!refreshLocation) return null;
+  return Promise.race([
+    refreshLocation(),
+    new Promise((resolve) => setTimeout(() => resolve(null), LOCATION_TIMEOUT_MS)),
+  ]);
+}
+
 export default function MusicPage() {
   const { items, loading, error } = useFeed();
   const { user, profile } = useAuth();
@@ -28,7 +38,9 @@ export default function MusicPage() {
     setUploadState('uploading');
     setProgress(1);
     try {
-      const loc = await refreshLocation();
+      setUploadMessage('Checking location permission…');
+      const loc = await safeRefreshLocation(refreshLocation);
+      setUploadMessage('Uploading file to Firebase Storage…');
       const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
         setProgress(nextProgress);
         if (rawState === 'paused') setUploadState('uploading');
@@ -64,6 +76,15 @@ export default function MusicPage() {
       setForm({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
     } catch (err) {
       setUploadState('error');
+      console.error('[music] upload failed', {
+        code: err?.code,
+        message: err?.message,
+        originalMessage: err?.originalMessage,
+        originalError: err?.originalError,
+      });
+      if (err?.code === 'storage/cors') {
+        console.error('[music] storage CORS setup required for origin:', window?.location?.origin);
+      }
       setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
     } finally {
       setProgress(0);
