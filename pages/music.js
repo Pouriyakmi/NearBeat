@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AppShell from '../components/AppShell';
 import PageHeader from '../components/PageHeader';
 import TrackRow from '../components/TrackRow';
@@ -7,7 +6,8 @@ import { useFeed } from '../hooks/useFeed';
 import { useAuth } from '../context/AuthContext';
 import { usePrivacy } from '../context/PrivacyContext';
 import { createMusicPost } from '../services/firestore';
-import { uploadTrackFile } from '../services/storage';
+import { listTrackFiles, uploadTrackFile } from '../services/storage';
+import Uploader from '../components/Uploader';
 
 const LOCATION_TIMEOUT_MS = 7000;
 
@@ -26,7 +26,7 @@ export default function MusicPage() {
   const [progress, setProgress] = useState(0);
   const [uploadState, setUploadState] = useState('idle');
   const [uploadMessage, setUploadMessage] = useState('');
-  const [uploadHelp, setUploadHelp] = useState('');
+  const [files, setFiles] = useState([]);
   const [form, setForm] = useState({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
 
   const handleUpload = async (e) => {
@@ -35,14 +35,14 @@ export default function MusicPage() {
     const title = form.title || file.name.replace(/\.[^/.]+$/, '');
     const artist = form.artist || profile?.displayName || 'Unknown';
 
-    setUploadMessage('Starting upload…');
-    setUploadHelp('');
+    setUploadState('selecting');
+    setUploadMessage('Selecting file...');
     setUploadState('uploading');
     setProgress(1);
     try {
       setUploadMessage('Checking location permission…');
       const loc = await safeRefreshLocation(refreshLocation);
-      setUploadMessage('Uploading file to Firebase Storage…');
+      setUploadMessage('Uploading...');
       const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
         setProgress(nextProgress);
         if (rawState === 'paused') setUploadState('uploading');
@@ -74,7 +74,9 @@ export default function MusicPage() {
         type: 'track',
       });
       setUploadState('success');
-      setUploadMessage(`Track uploaded successfully${createdPost?.id ? ` (post: ${createdPost.id})` : ''}.`);
+      setUploadMessage(`Uploaded${createdPost?.id ? ` (post: ${createdPost.id})` : ''}.`);
+      const uploadedFiles = await listTrackFiles(user.uid);
+      setFiles(uploadedFiles);
       setForm({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
     } catch (err) {
       setUploadState('error');
@@ -84,7 +86,7 @@ export default function MusicPage() {
         originalMessage: err?.originalMessage,
         originalError: err?.originalError,
       });
-      setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
+      setUploadMessage(err?.message || err?.originalMessage || 'Error');
     } finally {
       setProgress(0);
       e.target.value = '';
@@ -93,15 +95,26 @@ export default function MusicPage() {
 
   const myTracks = useMemo(() => items.filter((t) => t.ownerUid === user?.uid), [items, user?.uid]);
 
-  return <AppShell title="Music | NearBeat"><div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><PageHeader eyebrow="Music" title="Shared music library" description="Upload and discover real tracks from Firebase." />
+  const loadFiles = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const next = await listTrackFiles(user.uid);
+      setFiles(next);
+    } catch (_) {
+      setFiles([]);
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    loadFiles();
+  }, [loadFiles]);
+
+  return <AppShell title="Music | NearBeat"><div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><PageHeader eyebrow="Music" title="Shared music library" description="Upload and discover real tracks from Supabase Storage." />
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.05] p-4">
       <p className="mb-3 text-sm font-bold text-slate-200">Upload with metadata</p>
       <div className="grid gap-2 sm:grid-cols-2">
         {['title', 'artist', 'album', 'genre', 'imageUrl'].map((key) => <input key={key} value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} placeholder={key === 'imageUrl' ? 'Cover image URL' : key[0].toUpperCase() + key.slice(1)} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none" />)}
       </div>
-      <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-slate-950"><Upload size={16} /> {uploadState === 'uploading' || uploadState === 'finalizing' ? `Uploading ${progress}%` : 'Upload track'}<input type="file" accept="audio/*" hidden onChange={handleUpload} disabled={uploadState === 'uploading' || uploadState === 'finalizing'} /></label>
-      {(uploadState === 'uploading' || uploadState === 'finalizing') && <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10"><div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${progress}%` }} /></div>}
-      {uploadMessage && <p className={`mt-3 text-sm ${uploadState === 'error' ? 'text-rose-400' : uploadState === 'success' ? 'text-emerald-300' : 'text-slate-300'}`}>{uploadMessage}</p>}
-      {uploadHelp && <p className="mt-2 break-all rounded-xl border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">{uploadHelp}</p>}
-    </section>{loading && <p className="mt-6 text-slate-400">Loading tracks…</p>}{error && <p className="mt-6 text-rose-400">{error}</p>}<div className="mt-6 space-y-3">{myTracks.map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: '#0f172a,#334155', isUploaded: true }} meta={track.album || 'upload'} />)}</div></div></AppShell>;
+      <Uploader uploadState={uploadState} progress={progress} uploadMessage={uploadMessage} onFileChange={handleUpload} />
+    </section><section className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-bold text-slate-200">My uploaded files</p><div className="mt-2 space-y-2">{files.length === 0 ? <p className="text-xs text-slate-400">No files uploaded yet.</p> : files.map((f) => <a key={f.id || f.name} href={f.publicUrl} target="_blank" rel="noreferrer" className="block text-xs text-emerald-300 underline">{f.name || f.path}</a>)}</div></section>{loading && <p className="mt-6 text-slate-400">Loading tracks…</p>}{error && <p className="mt-6 text-rose-400">{error}</p>}<div className="mt-6 space-y-3">{myTracks.map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: '#0f172a,#334155', isUploaded: true }} meta={track.album || 'upload'} />)}</div></div></AppShell>;
 }

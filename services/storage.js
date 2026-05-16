@@ -1,123 +1,94 @@
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
-import { storage } from '../lib/firebase';
+import { TRACKS_BUCKET, supabase } from '../lib/supabase';
 
-const UPLOAD_STALL_TIMEOUT_MS = 30000;
-
-function ensureStorage() {
-  if (!storage) throw new Error('Firebase Storage is not configured.');
-  const bucket = storage?.app?.options?.storageBucket || '';
-  const isValidBucket = bucket.endsWith('.appspot.com') || bucket.endsWith('.firebasestorage.app');
-  if (!bucket || !isValidBucket) {
-    throw new Error('Firebase Storage bucket is missing or invalid. Check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET (example: your-project.appspot.com or your-project.firebasestorage.app).');
-  }
-  return storage;
+function sanitizeFileName(name) {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-function normalizeStorageError(error) {
-  const code = error?.code || 'storage/unknown';
-  const rawMessage = `${error?.message || ''} ${error?.serverResponse || ''}`.toLowerCase();
-  const isCorsFailure = rawMessage.includes('cors') || rawMessage.includes('xmlhttprequest') || rawMessage.includes('err_failed') || rawMessage.includes('preflight');
-  const normalizedCode = isCorsFailure ? 'storage/cors' : code;
-  const messages = {
-    'storage/unauthorized': 'Upload denied. Sign in and make sure Storage rules allow authenticated users to write.',
-    'storage/canceled': 'Upload was canceled before completion.',
-    'storage/retry-limit-exceeded': 'Upload failed after multiple retries. Please try again.',
-    'storage/quota-exceeded': 'Storage quota exceeded for this Firebase project.',
-    'storage/invalid-checksum': 'Upload integrity check failed (invalid checksum).',
-    'storage/invalid-format': 'File format is invalid for this upload.',
-    'storage/invalid-argument': 'Upload request is invalid. Please check file metadata.',
-    'storage/object-not-found': 'Uploaded file could not be found in Storage.',
-    'storage/cors': 'Upload blocked by Storage CORS policy. Configure Firebase Storage CORS for your site origin (https://nearbeat-c4506.firebaseapp.com) and retry.',
-    'storage/unknown': error?.message || 'Unexpected Firebase Storage error.',
-  };
-  const readableMessage = messages[normalizedCode] || error?.message || 'Unexpected Firebase Storage error.';
-  const enrichedError = new Error(readableMessage);
-  enrichedError.code = normalizedCode;
-  enrichedError.originalMessage = error?.message || '';
-  enrichedError.originalError = error;
-  return enrichedError;
+function toReadableError(error, fallback) {
+  const message = error?.message || fallback;
+  const err = new Error(message);
+  err.code = error?.statusCode || error?.code || 'storage/error';
+  err.originalError = error;
+  return err;
 }
 
-function observeUpload(task, file, onProgress, resolve, reject) {
-  const fallbackTotal = file?.size || 1;
-  let lastBytesTransferred = 0;
-  let stalledTimeout = null;
+export async function uploadTrackFile(uid, file, onProgress, metadata = {}) {
+  const timestamp = Date.now();
+  const safeName = sanitizeFileName(file.name);
+  const storagePath = `${uid}/${timestamp}-${safeName}`;
 
-  const clearStallTimeout = () => {
-    if (stalledTimeout) {
-      clearTimeout(stalledTimeout);
-      stalledTimeout = null;
-    }
-  };
-
-  const scheduleStallRecovery = () => {
-    clearStallTimeout();
-    stalledTimeout = setTimeout(() => {
-      if (task.snapshot?.state === 'running' && lastBytesTransferred < fallbackTotal) {
-        if (task.snapshot?.bytesTransferred === 0) {
-          console.warn('[storage] no bytes transferred yet; likely network/CORS issue, skipping pause/resume loop');
-          return;
-        }
-        console.warn('[storage] upload appears stalled, forcing retry via pause/resume');
-        if (task.snapshot?.bytesTransferred === 0) {
-          console.warn('[storage] no bytes transferred yet; likely network/CORS issue, skipping pause/resume loop');
-          return;
-        }
-        task.pause();
-        task.resume();
-      }
-    }, UPLOAD_STALL_TIMEOUT_MS);
-  };
-
-  task.on(
-    'state_changed',
-    (snapshot) => {
-      const bytesTransferred = Number.isFinite(snapshot?.bytesTransferred) ? snapshot.bytesTransferred : lastBytesTransferred;
-      const rawTotal = Number.isFinite(snapshot?.totalBytes) ? snapshot.totalBytes : 0;
-      const computedTotal = rawTotal > 0 ? rawTotal : fallbackTotal;
-      const progress = Math.min(100, Math.round((bytesTransferred / Math.max(1, computedTotal)) * 100));
-      lastBytesTransferred = Math.max(lastBytesTransferred, bytesTransferred);
-      if (snapshot?.state === 'running' && bytesTransferred < computedTotal) scheduleStallRecovery();
-      else clearStallTimeout();
-
-      console.info('[storage] state_changed', {
-        state: snapshot?.state,
-        bytesTransferred,
-        totalBytes: rawTotal,
-        computedTotal,
-        progress,
-      });
-
-      onProgress?.(progress, snapshot?.state || 'running');
-    },
-    (error) => {
-      clearStallTimeout();
-      reject(normalizeStorageError(error));
-    },
-    async () => {
-      clearStallTimeout();
-      try {
-        const downloadURL = await getDownloadURL(task.snapshot.ref);
-        resolve({ storagePath: task.snapshot.ref.fullPath, downloadURL });
-      } catch (error) {
-        reject(normalizeStorageError(error));
-      }
-    }
-  );
-}
-
-export function uploadTrackFile(uid, file, onProgress, metadata = {}) {
-  return new Promise((resolve, reject) => {
-    const fileRef = ref(ensureStorage(), `tracks/${uid}/${Date.now()}-${file.name}`);
-    const task = uploadBytesResumable(fileRef, file, { contentType: file.type || 'audio/mpeg', customMetadata: Object.fromEntries(Object.entries(metadata).filter(([, v]) => v)) });
-    observeUpload(task, file, onProgress, resolve, reject);
+  onProgress?.(5, 'running');
+  const { error } = await supabase.storage.from(TRACKS_BUCKET).upload(storagePath, file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: file.type || 'audio/mpeg',
+    metadata: Object.fromEntries(Object.entries(metadata).filter(([, value]) => value)),
   });
+
+  if (error) {
+    throw toReadableError(error, 'Upload failed.');
+  }
+
+  onProgress?.(100, 'success');
+  const { data } = supabase.storage.from(TRACKS_BUCKET).getPublicUrl(storagePath);
+
+  return {
+    storagePath: `tracks/${storagePath}`,
+    objectPath: storagePath,
+    downloadURL: data?.publicUrl || '',
+    publicUrl: data?.publicUrl || '',
+  };
 }
 
-export function uploadProfilePhoto(uid, file, onProgress) {
-  return new Promise((resolve, reject) => {
-    const fileRef = ref(ensureStorage(), `avatars/${uid}/${Date.now()}-${file.name}`);
-    const task = uploadBytesResumable(fileRef, file, { contentType: file.type || 'image/jpeg' });
-    observeUpload(task, file, onProgress, resolve, reject);
+export async function uploadProfilePhoto(uid, file, onProgress) {
+  const timestamp = Date.now();
+  const safeName = sanitizeFileName(file.name);
+  const storagePath = `${uid}/${timestamp}-${safeName}`;
+
+  onProgress?.(10, 'running');
+  const { error } = await supabase.storage.from(TRACKS_BUCKET).upload(storagePath, file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: file.type || 'image/jpeg',
+  });
+
+  if (error) {
+    throw toReadableError(error, 'Photo upload failed.');
+  }
+
+  onProgress?.(100, 'success');
+  const { data } = supabase.storage.from(TRACKS_BUCKET).getPublicUrl(storagePath);
+
+  return {
+    storagePath: `tracks/${storagePath}`,
+    objectPath: storagePath,
+    downloadURL: data?.publicUrl || '',
+    publicUrl: data?.publicUrl || '',
+  };
+}
+
+export function getTrackPublicUrl(storagePath = '') {
+  const normalizedPath = storagePath.startsWith('tracks/') ? storagePath.slice('tracks/'.length) : storagePath;
+  const { data } = supabase.storage.from(TRACKS_BUCKET).getPublicUrl(normalizedPath);
+  return data?.publicUrl || '';
+}
+
+export async function listTrackFiles(uid) {
+  if (!uid) return [];
+  const { data, error } = await supabase.storage.from(TRACKS_BUCKET).list(uid, {
+    limit: 50,
+    sortBy: { column: 'name', order: 'desc' },
+  });
+  if (error) throw toReadableError(error, 'Unable to load files.');
+
+  return (data || []).map((item) => {
+    const objectPath = `${uid}/${item.name}`;
+    const { data: publicData } = supabase.storage.from(TRACKS_BUCKET).getPublicUrl(objectPath);
+    return {
+      ...item,
+      path: `tracks/${objectPath}`,
+      objectPath,
+      publicUrl: publicData?.publicUrl || '',
+    };
   });
 }
