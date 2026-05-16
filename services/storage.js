@@ -15,6 +15,9 @@ function ensureStorage() {
 
 function normalizeStorageError(error) {
   const code = error?.code || 'storage/unknown';
+  const rawMessage = `${error?.message || ''} ${error?.serverResponse || ''}`.toLowerCase();
+  const isCorsFailure = rawMessage.includes('cors') || rawMessage.includes('xmlhttprequest') || rawMessage.includes('err_failed') || rawMessage.includes('preflight');
+  const normalizedCode = isCorsFailure ? 'storage/cors' : code;
   const messages = {
     'storage/unauthorized': 'Upload denied. Sign in and make sure Storage rules allow authenticated users to write.',
     'storage/canceled': 'Upload was canceled before completion.',
@@ -24,11 +27,12 @@ function normalizeStorageError(error) {
     'storage/invalid-format': 'File format is invalid for this upload.',
     'storage/invalid-argument': 'Upload request is invalid. Please check file metadata.',
     'storage/object-not-found': 'Uploaded file could not be found in Storage.',
+    'storage/cors': 'Upload blocked by Storage CORS policy. Configure Firebase Storage CORS for your site origin (https://nearbeat-c4506.firebaseapp.com) and retry.',
     'storage/unknown': error?.message || 'Unexpected Firebase Storage error.',
   };
-  const readableMessage = messages[code] || error?.message || 'Unexpected Firebase Storage error.';
+  const readableMessage = messages[normalizedCode] || error?.message || 'Unexpected Firebase Storage error.';
   const enrichedError = new Error(readableMessage);
-  enrichedError.code = code;
+  enrichedError.code = normalizedCode;
   enrichedError.originalMessage = error?.message || '';
   enrichedError.originalError = error;
   return enrichedError;
@@ -51,6 +55,10 @@ function observeUpload(task, file, onProgress, resolve, reject) {
     stalledTimeout = setTimeout(() => {
       if (task.snapshot?.state === 'running' && lastBytesTransferred < fallbackTotal) {
         console.warn('[storage] upload appears stalled, forcing retry via pause/resume');
+        if (task.snapshot?.bytesTransferred === 0) {
+          console.warn('[storage] no bytes transferred yet; likely network/CORS issue, skipping pause/resume loop');
+          return;
+        }
         task.pause();
         task.resume();
       }
