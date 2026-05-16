@@ -89,13 +89,13 @@ https://github.com/pouriyakmi/NearBeat/actions
 ]
 ```
 
-2) CORS را روی bucket درست اعمال کن (برای Firebase SDK معمولاً `appspot.com`):
+2) CORS را روی bucket اعمال کن:
 
 ```bash
-gsutil cors set cors.json gs://nearbeat-c4506.appspot.com
+gsutil cors set cors.json gs://nearbeat-c4506.firebasestorage.app
 ```
 
-3) بعد از اعمال CORS حدود 1 تا 5 دقیقه صبر کن، سپس hard refresh بزن و دوباره تست کن.
+اگر bucket شما `appspot.com` است، همان نام را جایگزین کن.
 
 ### ❌ Build ناموفق
 بررسی کن که `npm run build` به‌صورت محلی موفق است یا نه.
