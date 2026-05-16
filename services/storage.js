@@ -54,6 +54,10 @@ function observeUpload(task, file, onProgress, resolve, reject) {
     clearStallTimeout();
     stalledTimeout = setTimeout(() => {
       if (task.snapshot?.state === 'running' && lastBytesTransferred < fallbackTotal) {
+        if (task.snapshot?.bytesTransferred === 0) {
+          console.warn('[storage] no bytes transferred yet; likely network/CORS issue, skipping pause/resume loop');
+          return;
+        }
         console.warn('[storage] upload appears stalled, forcing retry via pause/resume');
         if (task.snapshot?.bytesTransferred === 0) {
           console.warn('[storage] no bytes transferred yet; likely network/CORS issue, skipping pause/resume loop');
