@@ -20,7 +20,6 @@ export default function ProfilePage() {
   const [favorites, setFavorites] = useState([]);
   const [playlistName, setPlaylistName] = useState('');
   const [nowPlaying, setNowPlaying] = useState('Unavailable from browser');
-  const [avatarBusy, setAvatarBusy] = useState(false);
   const { items } = useFeed();
   const mine = authUser?.uid === realId;
 
@@ -50,18 +49,7 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!mine) return;
     const fd = new FormData(e.currentTarget);
-    const patch = Object.fromEntries(fd.entries());
-    const avatar = fd.get('avatarFile');
-
-    if (avatar && avatar.size) {
-      setAvatarBusy(true);
-      const { downloadURL } = await uploadProfilePhoto(realId, avatar);
-      patch.photoURL = downloadURL;
-      setAvatarBusy(false);
-    }
-
-    delete patch.avatarFile;
-    await updateUserProfile(realId, patch);
+    await updateUserProfile(realId, Object.fromEntries(fd.entries()));
     alert('Saved');
   };
 
@@ -77,6 +65,6 @@ export default function ProfilePage() {
       <AnimatePresence mode="wait">
       {tab === 'profile' ? <motion.div key="p" initial={{opacity:0,x:12}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-12}}><section className="mt-6"><h2 className="mb-3 text-lg font-black">Uploaded tracks</h2>{uploads.length===0 ? <p className="text-slate-500">No uploads yet.</p> : <div className="space-y-3">{uploads.map((track) => <div key={track.id} className="rounded-2xl border border-white/10 p-2"><TrackRow track={{ title: track.title, artist: track.artist, artworkGradient: '#0f172a,#334155', isUploaded: true }} meta="upload" />{mine && <button onClick={() => pinTrack(track)} className="ml-2 inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs"><Pin size={12}/>Pin</button>}</div>)}</div>}</section>
       <section className="mt-6 rounded-2xl border border-white/10 p-4"><h3 className="font-bold">Pinned favorites</h3><div className="mt-2 space-y-2">{favorites.map((f) => <p key={f.id} className="text-sm text-slate-300">• {f.title} — {f.artist}</p>)}</div><div className="mt-3 flex gap-2"><input value={playlistName} onChange={(e)=>setPlaylistName(e.target.value)} placeholder="New playlist name" className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm"/><button onClick={makePlaylist} className="rounded-xl bg-emerald-300 px-3 py-2 text-sm font-bold text-black">Create playlist</button></div><p className="mt-4 text-sm text-slate-400">Now playing from browser: {nowPlaying}</p></section></motion.div> :
-      <motion.form key="s" initial={{opacity:0,x:12}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-12}} onSubmit={saveSettings} className="mt-6 space-y-2 rounded-2xl border border-white/10 p-4"><input name="displayName" defaultValue={user.displayName} placeholder="Display name" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><input name="username" defaultValue={user.username} placeholder="Username" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><input name="systemId" defaultValue={user.systemId} placeholder="ID" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><label className="block text-sm text-slate-300">Profile photo<input name="avatarFile" type="file" accept="image/*" className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/></label>{user.photoURL ? <Image src={user.photoURL} alt="avatar" width={56} height={56} className="h-14 w-14 rounded-full object-cover" /> : null}<textarea name="bio" defaultValue={user.bio||''} placeholder="Bio" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><button disabled={avatarBusy} className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-black disabled:opacity-60">{avatarBusy ? 'Uploading photo…' : 'Save profile settings'}</button></motion.form>}
+      <motion.form key="s" initial={{opacity:0,x:12}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-12}} onSubmit={saveSettings} className="mt-6 space-y-2 rounded-2xl border border-white/10 p-4"><input name="displayName" defaultValue={user.displayName} placeholder="Display name" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><input name="username" defaultValue={user.username} placeholder="Username" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><input name="systemId" defaultValue={user.systemId} placeholder="ID" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><input name="photoURL" defaultValue={user.photoURL||''} placeholder="Photo URL" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><textarea name="bio" defaultValue={user.bio||''} placeholder="Bio" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2"/><button className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-black">Save profile settings</button></motion.form>}
       </AnimatePresence></>}</div></AppShell>;
 }
