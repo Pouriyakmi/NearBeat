@@ -6,8 +6,9 @@ const UPLOAD_STALL_TIMEOUT_MS = 30000;
 function ensureStorage() {
   if (!storage) throw new Error('Firebase Storage is not configured.');
   const bucket = storage?.app?.options?.storageBucket || '';
-  if (!bucket || !bucket.includes('.appspot.com')) {
-    throw new Error('Firebase Storage bucket is missing or invalid. Check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET (example: your-project.appspot.com).');
+  const isValidBucket = bucket.endsWith('.appspot.com') || bucket.endsWith('.firebasestorage.app');
+  if (!bucket || !isValidBucket) {
+    throw new Error('Firebase Storage bucket is missing or invalid. Check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET (example: your-project.appspot.com or your-project.firebasestorage.app).');
   }
   return storage;
 }

@@ -24,13 +24,13 @@ https://github.com/pouriyakmi/NearBeat/settings/secrets/actions
 | نام Secret | مقدار |
 |-----------|--------|
 | `FIREBASE_TOKEN` | (token از مرحله 1) |
-| `FIREBASE_API_KEY` | `AIzaSyA2yoQkYBeUQoN8pOqGwrq3D0FkyGnkCqg` |
-| `FIREBASE_AUTH_DOMAIN` | `nearbeat-c4506.firebaseapp.com` |
-| `FIREBASE_PROJECT_ID` | `nearbeat-c4506` |
-| `FIREBASE_STORAGE_BUCKET` | `nearbeat-c4506.firebasestorage.app` |
-| `FIREBASE_MESSAGING_SENDER_ID` | `821895577441` |
-| `FIREBASE_APP_ID` | `1:821895577441:web:06d4afbe7b8c92f4c74f20` |
-| `FIREBASE_MEASUREMENT_ID` | `G-DBQBMFX7JS` |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | `AIzaSyA2yoQkYBeUQoN8pOqGwrq3D0FkyGnkCqg` |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `nearbeat-c4506.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `nearbeat-c4506` |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `nearbeat-c4506.firebasestorage.app` |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `821895577441` |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | `1:821895577441:web:06d4afbe7b8c92f4c74f20` |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | `G-DBQBMFX7JS` |
 
 ---
 
