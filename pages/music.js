@@ -15,6 +15,7 @@ export default function MusicPage() {
   const { refreshLocation } = usePrivacy();
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadState, setUploadState] = useState('idle');
   const [form, setForm] = useState({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
 
   const handleUpload = async (e) => {
@@ -24,7 +25,8 @@ export default function MusicPage() {
     const artist = form.artist || profile?.displayName || 'Unknown';
 
     setBusy(true);
-    setProgress(0);
+    setUploadState('uploading');
+    setProgress(1);
     try {
       const loc = await refreshLocation();
       const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, setProgress, {
@@ -58,6 +60,7 @@ export default function MusicPage() {
       alert(err.message || 'Upload failed');
     } finally {
       setBusy(false);
+      setUploadState('idle');
       setProgress(0);
       e.target.value = '';
     }

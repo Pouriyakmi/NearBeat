@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Pin } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -7,6 +8,7 @@ import AppShell from '../../components/AppShell';
 import TrackRow from '../../components/TrackRow';
 import { useFeed } from '../../hooks/useFeed';
 import { createPlaylist, getUserProfile, listFavoriteTracks, setFavoriteTrack, updateUserProfile } from '../../services/firestore';
+import { uploadProfilePhoto } from '../../services/storage';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ProfilePage() {

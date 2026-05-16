@@ -15,8 +15,9 @@ export function uploadTrackFile(uid, file, onProgress, metadata = {}) {
       'state_changed',
       (snapshot) => {
         if (!onProgress) return;
-        const progress = snapshot.totalBytes ? Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100) : 0;
-        onProgress(progress);
+        const total = snapshot.totalBytes || file.size || 1;
+        const progress = Math.min(100, Math.round((snapshot.bytesTransferred / total) * 100));
+        onProgress(progress, snapshot.state);
       },
       reject,
       async () => {
@@ -24,5 +25,22 @@ export function uploadTrackFile(uid, file, onProgress, metadata = {}) {
         resolve({ storagePath: task.snapshot.ref.fullPath, downloadURL });
       }
     );
+  });
+}
+
+export function uploadProfilePhoto(uid, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const fileRef = ref(ensureStorage(), `avatars/${uid}/${Date.now()}-${file.name}`);
+    const task = uploadBytesResumable(fileRef, file, { contentType: file.type || 'image/jpeg' });
+
+    task.on('state_changed', (snapshot) => {
+      if (!onProgress) return;
+      const total = snapshot.totalBytes || file.size || 1;
+      const progress = Math.min(100, Math.round((snapshot.bytesTransferred / total) * 100));
+      onProgress(progress, snapshot.state);
+    }, reject, async () => {
+      const downloadURL = await getDownloadURL(task.snapshot.ref);
+      resolve({ storagePath: task.snapshot.ref.fullPath, downloadURL });
+    });
   });
 }
