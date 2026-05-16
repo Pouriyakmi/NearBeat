@@ -13,9 +13,9 @@ export default function MusicPage() {
   const { items, loading, error } = useFeed();
   const { user, profile } = useAuth();
   const { refreshLocation } = usePrivacy();
-  const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadState, setUploadState] = useState('idle');
+  const [uploadMessage, setUploadMessage] = useState('');
   const [form, setForm] = useState({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
 
   const handleUpload = async (e) => {
@@ -24,18 +24,23 @@ export default function MusicPage() {
     const title = form.title || file.name.replace(/\.[^/.]+$/, '');
     const artist = form.artist || profile?.displayName || 'Unknown';
 
-    setBusy(true);
+    setUploadMessage('Starting upload…');
     setUploadState('uploading');
     setProgress(1);
     try {
       const loc = await refreshLocation();
-      const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, setProgress, {
+      const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
+        setProgress(nextProgress);
+        if (rawState === 'paused') setUploadState('uploading');
+      }, {
         title,
         artist,
         album: form.album,
         genre: form.genre,
       });
-      await createMusicPost({
+      setUploadState('finalizing');
+      setUploadMessage('Upload finished. Creating post…');
+      const createdPost = await createMusicPost({
         title,
         artist,
         album: form.album || 'Unknown album',
@@ -54,13 +59,13 @@ export default function MusicPage() {
         locationMeta: loc || null,
         type: 'track',
       });
+      setUploadState('success');
+      setUploadMessage(`Track uploaded successfully${createdPost?.id ? ` (post: ${createdPost.id})` : ''}.`);
       setForm({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
-      alert('Track uploaded.');
     } catch (err) {
-      alert(err.message || 'Upload failed');
+      setUploadState('error');
+      setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
     } finally {
-      setBusy(false);
-      setUploadState('idle');
       setProgress(0);
       e.target.value = '';
     }
@@ -74,7 +79,8 @@ export default function MusicPage() {
       <div className="grid gap-2 sm:grid-cols-2">
         {['title', 'artist', 'album', 'genre', 'imageUrl'].map((key) => <input key={key} value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} placeholder={key === 'imageUrl' ? 'Cover image URL' : key[0].toUpperCase() + key.slice(1)} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none" />)}
       </div>
-      <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-slate-950"><Upload size={16} /> {busy ? `Uploading ${progress}%` : 'Upload track'}<input type="file" accept="audio/*" hidden onChange={handleUpload} disabled={busy} /></label>
-      {busy && <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10"><div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${progress}%` }} /></div>}
+      <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-slate-950"><Upload size={16} /> {uploadState === 'uploading' || uploadState === 'finalizing' ? `Uploading ${progress}%` : 'Upload track'}<input type="file" accept="audio/*" hidden onChange={handleUpload} disabled={uploadState === 'uploading' || uploadState === 'finalizing'} /></label>
+      {(uploadState === 'uploading' || uploadState === 'finalizing') && <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10"><div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${progress}%` }} /></div>}
+      {uploadMessage && <p className={`mt-3 text-sm ${uploadState === 'error' ? 'text-rose-400' : uploadState === 'success' ? 'text-emerald-300' : 'text-slate-300'}`}>{uploadMessage}</p>}
     </section>{loading && <p className="mt-6 text-slate-400">Loading tracks…</p>}{error && <p className="mt-6 text-rose-400">{error}</p>}<div className="mt-6 space-y-3">{myTracks.map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: '#0f172a,#334155', isUploaded: true }} meta={track.album || 'upload'} />)}</div></div></AppShell>;
 }
