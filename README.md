@@ -25,6 +25,8 @@ Create `.env.local` and set:
 - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
 - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_API_BASE_URL` (optional, use full backend URL if frontend and API are on different domains)
+- `ALLOWED_ORIGINS` (optional, comma-separated CORS allow list for Arvan/production domains)
 
 ## Upload storage
 - Music files are written to: `uploads/music`
@@ -41,3 +43,8 @@ For persistent uploads in production, mount a persistent volume to the project `
 npm run build
 npm start
 ```
+
+## Arvan Cloud deployment notes
+- If your frontend domain differs from your API domain, set `NEXT_PUBLIC_API_BASE_URL` (example: `https://api.yourdomain.com`).
+- If browser uploads or audio playback are blocked, set `ALLOWED_ORIGINS` to your frontend domains (example: `https://app.yourdomain.com,https://nearbeat.ir`).
+- Keep the `uploads/` directory on persistent storage in Arvan Cloud; local container disk is ephemeral.

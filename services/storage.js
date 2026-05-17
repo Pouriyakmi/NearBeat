@@ -4,6 +4,15 @@ function sanitizeFileName(name) {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
+function getApiBaseUrl() {
+  return (process.env.NEXT_PUBLIC_API_BASE_URL || '').trim().replace(/\/$/, '');
+}
+
+function withApiBase(path) {
+  const base = getApiBaseUrl();
+  return base ? `${base}${path}` : path;
+}
+
 async function uploadViaApi(file, folder, uid, onProgress, metadata = {}) {
   const timestamp = Date.now();
   const safeName = sanitizeFileName(file.name);
@@ -14,7 +23,7 @@ async function uploadViaApi(file, folder, uid, onProgress, metadata = {}) {
   formData.append('metadata', JSON.stringify(metadata));
 
   onProgress?.(15, 'running');
-  const response = await fetch('/api/upload', {
+  const response = await fetch(withApiBase('/api/upload'), {
     method: 'POST',
     body: formData,
   });
@@ -32,26 +41,28 @@ async function uploadViaApi(file, folder, uid, onProgress, metadata = {}) {
 
 export async function uploadTrackFile(uid, file, onProgress, metadata = {}) {
   const result = await uploadViaApi(file, 'music', uid, onProgress, metadata);
+  const publicUrl = withApiBase(result.url);
   return {
     storagePath: result.storagePath,
     objectPath: result.storagePath,
-    downloadURL: result.url,
-    publicUrl: result.url,
+    downloadURL: publicUrl,
+    publicUrl,
   };
 }
 
 export async function uploadProfilePhoto(uid, file, onProgress) {
   const result = await uploadViaApi(file, 'covers', uid, onProgress);
+  const publicUrl = withApiBase(result.url);
   return {
     storagePath: result.storagePath,
     objectPath: result.storagePath,
-    downloadURL: result.url,
-    publicUrl: result.url,
+    downloadURL: publicUrl,
+    publicUrl,
   };
 }
 
 export function getTrackPublicUrl(storagePath = '') {
-  return storagePath || '';
+  return storagePath ? withApiBase(storagePath) : '';
 }
 
 export async function listTrackFiles(uid) {
@@ -61,6 +72,6 @@ export async function listTrackFiles(uid) {
     name: track.fileName || track.title || track.id,
     path: track.storagePath || track.audioUrl || '',
     objectPath: track.storagePath || track.audioUrl || '',
-    publicUrl: track.audioUrl || '',
+    publicUrl: getTrackPublicUrl(track.audioUrl || track.storagePath || ''),
   }));
 }
