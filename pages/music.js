@@ -43,7 +43,7 @@ export default function MusicPage() {
       setUploadMessage('Checking location permission…');
       const loc = await safeRefreshLocation(refreshLocation);
       setUploadMessage('Uploading file to Arvan Storage…');
-      const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
+      const { downloadURL, downloadUrl, publicUrl, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
         setProgress(nextProgress);
         if (rawState === 'paused') setUploadState('uploading');
       }, {
@@ -52,6 +52,8 @@ export default function MusicPage() {
         album: form.album,
         genre: form.genre,
       });
+      const resolvedAudioUrl = downloadURL || downloadUrl || publicUrl;
+      if (!resolvedAudioUrl) throw new Error('Upload completed but no audio URL was returned.');
       setUploadState('finalizing');
       setUploadMessage('Upload finished. Creating post…');
       const createdPost = await createMusicPost({
@@ -63,7 +65,7 @@ export default function MusicPage() {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        audioUrl: downloadURL,
+        audioUrl: resolvedAudioUrl,
         storagePath,
         ownerUid: user.uid,
         ownerName: profile?.displayName || user.email,
