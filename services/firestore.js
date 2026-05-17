@@ -62,6 +62,12 @@ export async function listPlaylists() { const s = await getDocs(query(collection
 export async function createActivity(payload) { return addDoc(collection(ensureDb(), 'activity'), { ...payload, createdAt: serverTimestamp() }); }
 export async function updateUserProfile(uid, patch) { return setDoc(doc(ensureDb(), 'users', uid), { ...patch, updatedAt: serverTimestamp() }, { merge: true }); }
 
+
+export async function listMyUploadedTracks(uid) {
+  if (!uid) return [];
+  const snap = await getDocs(query(collection(ensureDb(), 'posts'), where('ownerUid', '==', uid), where('type', '==', 'track'), orderBy('createdAt', 'desc'), limit(50)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
 export async function searchUsers(term) {
   const t = term.trim().toLowerCase();
   if (!t) return [];

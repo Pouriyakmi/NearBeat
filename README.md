@@ -1,6 +1,6 @@
 # NearBeat
 
-NearBeat is a Next.js social music app with Firebase Authentication + Firestore and **Supabase Storage** for file uploads.
+NearBeat is a Next.js social music app with Firebase Authentication + Firestore and local server storage for file uploads.
 
 ## Stack
 - Next.js
@@ -8,7 +8,7 @@ NearBeat is a Next.js social music app with Firebase Authentication + Firestore 
 - Tailwind CSS
 - Firebase Auth
 - Firestore
-- Supabase Storage
+- Next.js API Routes (local uploads)
 
 ## Local development
 ```bash
@@ -25,35 +25,19 @@ Create `.env.local` and set:
 - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
 - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (server-side only; never expose in client)
 
-A template is available in `.env.example`.
+## Upload storage
+- Music files are written to: `uploads/music`
+- Cover/profile images are written to: `uploads/covers`
+- Files are uploaded through: `POST /api/upload`
+- Files are served through: `/api/files/:folder/:filename`
+- File URLs are saved in Firestore as `audioUrl`/`storagePath` on `posts` documents.
 
-## Supabase Storage setup
-1. Open your Supabase project and run SQL from `supabase/storage-policies.sql`.
-2. This migration creates bucket `tracks` (public) if missing.
-3. Policies on `storage.objects` enforce:
-   - Public `SELECT` only for `tracks` bucket.
-   - Authenticated `INSERT` only into `tracks/{auth.uid()}/...` paths.
-   - `UPDATE`/`DELETE` only by object owner.
-
-These policies are required so browser uploads with the anon key remain safe.
-
-## Upload path format
-Uploaded objects are stored as:
-
-`tracks/{userId}/{timestamp}-{filename}`
-
-## Public URL retrieval
-Client code uses:
-
-`supabase.storage.from('tracks').getPublicUrl(path)`
-
-for rendering download links in the UI.
+## Deployment note
+For persistent uploads in production, mount a persistent volume to the project `uploads/` directory.
 
 ## Build check
 ```bash
 npm run build
+npm start
 ```

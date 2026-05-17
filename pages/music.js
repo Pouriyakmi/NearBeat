@@ -109,7 +109,7 @@ export default function MusicPage() {
     loadFiles();
   }, [loadFiles]);
 
-  return <AppShell title="Music | NearBeat"><div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><PageHeader eyebrow="Music" title="Shared music library" description="Upload and discover real tracks from Supabase Storage." />
+  return <AppShell title="Music | NearBeat"><div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><PageHeader eyebrow="Music" title="Shared music library" description="Upload and discover real tracks from NearBeat local storage." />
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.05] p-4">
       <p className="mb-3 text-sm font-bold text-slate-200">Upload with metadata</p>
       <div className="grid gap-2 sm:grid-cols-2">
