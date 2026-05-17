@@ -21,6 +21,10 @@ function ensureDb() {
   return db;
 }
 
+function stripUndefinedFields(payload) {
+  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+}
+
 export function buildSystemId(uid) {
   return `NB-${uid.slice(0, 6).toUpperCase()}`;
 }
@@ -54,7 +58,7 @@ export function subscribeFeed(callback, onError) {
 }
 
 export async function createMusicPost(payload) {
-  return addDoc(collection(ensureDb(), 'posts'), { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  return addDoc(collection(ensureDb(), 'posts'), stripUndefinedFields({ ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
 }
 
 export async function listUsers() { const s = await getDocs(query(collection(ensureDb(), 'users'), limit(40))); return s.docs.map((d) => ({ id: d.id, ...d.data() })); }
