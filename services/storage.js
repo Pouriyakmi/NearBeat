@@ -31,10 +31,17 @@ async function uploadViaApi({ uid, file, folder, onProgress }) {
   }
 
   onProgress?.(100, 'success');
+  const resolvedUrl = data.downloadURL || data.publicUrl || data.url || '';
+  if (!resolvedUrl) {
+    const err = new Error('Upload succeeded but no public file URL was returned by the server.');
+    err.code = 'storage/missing-public-url';
+    throw err;
+  }
+
   return {
-    storagePath: data.storagePath,
-    downloadURL: data.downloadURL,
-    publicUrl: data.publicUrl,
+    storagePath: data.storagePath || data.key || '',
+    downloadURL: resolvedUrl,
+    publicUrl: data.publicUrl || resolvedUrl,
   };
 }
 
