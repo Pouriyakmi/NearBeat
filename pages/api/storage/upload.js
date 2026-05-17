@@ -1,4 +1,4 @@
-import { S3Client, HeadBucketCommand } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import formidable from 'formidable';
 import fs from 'node:fs';
@@ -72,6 +72,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('[arvan-upload] env-check', {
+      bucket: process.env.ARVAN_STORAGE_BUCKET || 'MISSING',
+      endpoint: process.env.ARVAN_STORAGE_ENDPOINT || 'MISSING',
+      accessKey: process.env.ARVAN_STORAGE_ACCESS_KEY ? 'OK' : 'MISSING',
+    });
     const { fields, files } = await parseRequest(req);
     const uploadFile = Array.isArray(files.file) ? files.file[0] : files.file;
     const folder = Array.isArray(fields.folder) ? fields.folder[0] : fields.folder;
@@ -89,7 +94,6 @@ export default async function handler(req, res) {
     const { bucket, publicBaseUrl } = getStorageConfig();
     const s3 = getS3Client();
 
-    await s3.send(new HeadBucketCommand({ Bucket: bucket }));
 
     const storagePath = createStorageKey(folder, uid, uploadFile.originalFilename);
     const fileStream = fs.createReadStream(uploadFile.filepath);
@@ -101,7 +105,6 @@ export default async function handler(req, res) {
         Key: storagePath,
         Body: fileStream,
         ContentType: fileType,
-        ACL: 'public-read',
         CacheControl: folder === 'music' ? 'public, max-age=31536000, immutable' : 'public, max-age=86400',
       },
     });
