@@ -19,9 +19,19 @@ async function uploadViaApi({ uid, file, folder, onProgress }) {
   form.append('uid', uid);
   form.append('folder', folder);
 
+  const configuredEndpoint = process.env.NEXT_PUBLIC_UPLOAD_API_URL?.trim();
+  const endpoint = configuredEndpoint || '/api/storage/upload';
+
   onProgress?.(5, 'running');
-  const response = await fetch('/api/storage/upload', { method: 'POST', body: form });
+  const response = await fetch(endpoint, { method: 'POST', body: form });
   onProgress?.(90, 'running');
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const err = new Error('Upload endpoint returned HTML instead of JSON. Configure NEXT_PUBLIC_UPLOAD_API_URL to a real backend endpoint (for example Cloud Run/Functions), because static Firebase Hosting cannot run /api routes.');
+    err.code = 'storage/invalid-upload-endpoint';
+    throw err;
+  }
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
