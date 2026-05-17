@@ -42,7 +42,7 @@ export default function MusicPage() {
     try {
       setUploadMessage('Checking location permission…');
       const loc = await safeRefreshLocation(refreshLocation);
-      setUploadMessage('Uploading file to Firebase Storage…');
+      setUploadMessage('Uploading file to Arvan Storage…');
       const { downloadURL, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
         setProgress(nextProgress);
         if (rawState === 'paused') setUploadState('uploading');
@@ -93,7 +93,7 @@ export default function MusicPage() {
 
   const myTracks = useMemo(() => items.filter((t) => t.ownerUid === user?.uid), [items, user?.uid]);
 
-  return <AppShell title="Music | NearBeat"><div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><PageHeader eyebrow="Music" title="Shared music library" description="Upload and discover real tracks from Firebase." />
+  return <AppShell title="Music | NearBeat"><div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><PageHeader eyebrow="Music" title="Shared music library" description="Upload and discover real tracks with Arvan object storage." />
     <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.05] p-4">
       <p className="mb-3 text-sm font-bold text-slate-200">Upload with metadata</p>
       <div className="grid gap-2 sm:grid-cols-2">

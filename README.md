@@ -1,6 +1,6 @@
 # NearBeat
 
-NearBeat is a Next.js social music app with Firebase Authentication + Firestore + Firebase Hosting deployment.
+NearBeat is a Next.js social music app with Firebase Authentication + Firestore + Firebase Hosting deployment, and Arvan Object Storage for uploaded media files.
 
 ## Stack
 - Next.js
@@ -8,6 +8,7 @@ NearBeat is a Next.js social music app with Firebase Authentication + Firestore 
 - Tailwind CSS
 - Firebase Auth
 - Firestore
+- Arvan Object Storage (S3-compatible)
 - Firebase Hosting
 
 ## Local development
@@ -32,6 +33,27 @@ Fill with your Firebase Web config values:
 - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
 - `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`
+
+Fill with Arvan storage values:
+- `ARVAN_STORAGE_BUCKET`
+- `ARVAN_STORAGE_ENDPOINT`
+- `ARVAN_STORAGE_PUBLIC_BASE_URL`
+- `ARVAN_STORAGE_ACCESS_KEY`
+- `ARVAN_STORAGE_SECRET_KEY`
+
+> Security: Never expose `ARVAN_STORAGE_SECRET_KEY` to the frontend. Uploading is done through secure server-side API routes only.
+
+## Storage architecture
+- Firebase remains responsible for **Auth + Firestore**.
+- Media uploads (music and cover images) go to Arvan Object Storage through `POST /api/storage/upload`.
+- Returned payload format is preserved:
+  - `storagePath`
+  - `downloadURL`
+  - `publicUrl`
+- Public file URLs are served from `ARVAN_STORAGE_PUBLIC_BASE_URL`.
+
+### Arvan CORS recommendation
+Configure your bucket CORS to allow your app origins (e.g. localhost + Firebase hosting domain) and `GET,HEAD` for streaming plus `PUT,POST` if needed by future direct flows.
 
 ## Firebase project
 - Project ID: `nearbeat-c4506`
