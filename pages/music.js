@@ -52,6 +52,11 @@ export default function MusicPage() {
         album: form.album,
         genre: form.genre,
       });
+      const resolvedAudioUrl = typeof downloadURL === 'string' ? downloadURL.trim() : '';
+      if (!resolvedAudioUrl) {
+        throw new Error('Upload completed, but no playable audio URL was returned. Please try again.');
+      }
+
       setUploadState('finalizing');
       setUploadMessage('Upload finished. Creating post…');
       const createdPost = await createMusicPost({
@@ -63,7 +68,7 @@ export default function MusicPage() {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        audioUrl: downloadURL,
+        audioUrl: resolvedAudioUrl,
         storagePath,
         ownerUid: user.uid,
         ownerName: profile?.displayName || user.email,
