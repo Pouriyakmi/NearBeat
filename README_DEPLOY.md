@@ -70,6 +70,23 @@ https://github.com/pouriyakmi/NearBeat/actions
 
 ### ❌ Upload روی Starting upload می‌ماند / خطای CORS در Console
 
+اگر خطای زیر را دیدی:
+- `Upload endpoint returned HTML instead of JSON`
+
+یعنی سایت روی Firebase Hosting به‌صورت **Static** دیپلوی شده و آدرس `/api/storage/upload` عملاً وجود ندارد (HTML برمی‌گردد).
+
+راه‌حل:
+1) یک backend واقعی برای آپلود بساز (Cloud Run / Firebase Functions / Next.js server).
+2) متغیر محیطی زیر را در محیط build تنظیم کن تا فرانت‌اند به backend درست وصل شود:
+
+```bash
+NEXT_PUBLIC_UPLOAD_API_URL=https://YOUR-BACKEND-DOMAIN/api/storage/upload
+```
+
+3) دوباره build و deploy بگیر.
+
+> نکته: فایل `firebase.json` فعلی همه مسیرها را به `index.html` rewrite می‌کند؛ بنابراین `/api/*` روی هاستینگ استاتیک اجرا نمی‌شود.
+
 اگر خطایی شبیه زیر دیدی:
 - `blocked by CORS policy`
 - `preflight request doesn't pass access control check`
