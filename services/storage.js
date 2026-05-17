@@ -1,123 +1,50 @@
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
-import { storage } from '../lib/firebase';
+const ALLOWED_UPLOAD_FOLDERS = new Set(['music', 'covers']);
 
-const UPLOAD_STALL_TIMEOUT_MS = 30000;
-
-function ensureStorage() {
-  if (!storage) throw new Error('Firebase Storage is not configured.');
-  const bucket = storage?.app?.options?.storageBucket || '';
-  const isValidBucket = bucket.endsWith('.appspot.com') || bucket.endsWith('.firebasestorage.app');
-  if (!bucket || !isValidBucket) {
-    throw new Error('Firebase Storage bucket is missing or invalid. Check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET (example: your-project.appspot.com or your-project.firebasestorage.app).');
+function validateClientFile(file, kind) {
+  if (!file) throw new Error('No file selected.');
+  if (kind === 'music' && !file.type.startsWith('audio/')) {
+    throw new Error('Invalid file type. Please select an audio file.');
   }
-  return storage;
+  if (kind === 'covers' && !file.type.startsWith('image/')) {
+    throw new Error('Invalid file type. Please select an image file.');
+  }
 }
 
-function normalizeStorageError(error) {
-  const code = error?.code || 'storage/unknown';
-  const rawMessage = `${error?.message || ''} ${error?.serverResponse || ''}`.toLowerCase();
-  const isCorsFailure = rawMessage.includes('cors') || rawMessage.includes('xmlhttprequest') || rawMessage.includes('err_failed') || rawMessage.includes('preflight');
-  const normalizedCode = isCorsFailure ? 'storage/cors' : code;
-  const messages = {
-    'storage/unauthorized': 'Upload denied. Sign in and make sure Storage rules allow authenticated users to write.',
-    'storage/canceled': 'Upload was canceled before completion.',
-    'storage/retry-limit-exceeded': 'Upload failed after multiple retries. Please try again.',
-    'storage/quota-exceeded': 'Storage quota exceeded for this Firebase project.',
-    'storage/invalid-checksum': 'Upload integrity check failed (invalid checksum).',
-    'storage/invalid-format': 'File format is invalid for this upload.',
-    'storage/invalid-argument': 'Upload request is invalid. Please check file metadata.',
-    'storage/object-not-found': 'Uploaded file could not be found in Storage.',
-    'storage/cors': 'Upload blocked by Storage CORS policy. Configure Firebase Storage CORS for your site origin (https://nearbeat-c4506.firebaseapp.com) and retry.',
-    'storage/unknown': error?.message || 'Unexpected Firebase Storage error.',
+async function uploadViaApi({ uid, file, folder, onProgress }) {
+  if (!ALLOWED_UPLOAD_FOLDERS.has(folder)) throw new Error('Invalid upload folder.');
+  if (!uid) throw new Error('Missing user id for upload.');
+
+  const form = new FormData();
+  form.append('file', file);
+  form.append('uid', uid);
+  form.append('folder', folder);
+
+  onProgress?.(5, 'running');
+  const response = await fetch('/api/storage/upload', { method: 'POST', body: form });
+  onProgress?.(90, 'running');
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(data?.error || 'Upload failed.');
+    err.code = 'storage/upload-failed';
+    throw err;
+  }
+
+  onProgress?.(100, 'success');
+  return {
+    storagePath: data.storagePath,
+    downloadURL: data.downloadURL,
+    publicUrl: data.publicUrl,
   };
-  const readableMessage = messages[normalizedCode] || error?.message || 'Unexpected Firebase Storage error.';
-  const enrichedError = new Error(readableMessage);
-  enrichedError.code = normalizedCode;
-  enrichedError.originalMessage = error?.message || '';
-  enrichedError.originalError = error;
-  return enrichedError;
-}
-
-function observeUpload(task, file, onProgress, resolve, reject) {
-  const fallbackTotal = file?.size || 1;
-  let lastBytesTransferred = 0;
-  let stalledTimeout = null;
-
-  const clearStallTimeout = () => {
-    if (stalledTimeout) {
-      clearTimeout(stalledTimeout);
-      stalledTimeout = null;
-    }
-  };
-
-  const scheduleStallRecovery = () => {
-    clearStallTimeout();
-    stalledTimeout = setTimeout(() => {
-      if (task.snapshot?.state === 'running' && lastBytesTransferred < fallbackTotal) {
-        if (task.snapshot?.bytesTransferred === 0) {
-          console.warn('[storage] no bytes transferred yet; likely network/CORS issue, skipping pause/resume loop');
-          return;
-        }
-        console.warn('[storage] upload appears stalled, forcing retry via pause/resume');
-        if (task.snapshot?.bytesTransferred === 0) {
-          console.warn('[storage] no bytes transferred yet; likely network/CORS issue, skipping pause/resume loop');
-          return;
-        }
-        task.pause();
-        task.resume();
-      }
-    }, UPLOAD_STALL_TIMEOUT_MS);
-  };
-
-  task.on(
-    'state_changed',
-    (snapshot) => {
-      const bytesTransferred = Number.isFinite(snapshot?.bytesTransferred) ? snapshot.bytesTransferred : lastBytesTransferred;
-      const rawTotal = Number.isFinite(snapshot?.totalBytes) ? snapshot.totalBytes : 0;
-      const computedTotal = rawTotal > 0 ? rawTotal : fallbackTotal;
-      const progress = Math.min(100, Math.round((bytesTransferred / Math.max(1, computedTotal)) * 100));
-      lastBytesTransferred = Math.max(lastBytesTransferred, bytesTransferred);
-      if (snapshot?.state === 'running' && bytesTransferred < computedTotal) scheduleStallRecovery();
-      else clearStallTimeout();
-
-      console.info('[storage] state_changed', {
-        state: snapshot?.state,
-        bytesTransferred,
-        totalBytes: rawTotal,
-        computedTotal,
-        progress,
-      });
-
-      onProgress?.(progress, snapshot?.state || 'running');
-    },
-    (error) => {
-      clearStallTimeout();
-      reject(normalizeStorageError(error));
-    },
-    async () => {
-      clearStallTimeout();
-      try {
-        const downloadURL = await getDownloadURL(task.snapshot.ref);
-        resolve({ storagePath: task.snapshot.ref.fullPath, downloadURL });
-      } catch (error) {
-        reject(normalizeStorageError(error));
-      }
-    }
-  );
 }
 
 export function uploadTrackFile(uid, file, onProgress, metadata = {}) {
-  return new Promise((resolve, reject) => {
-    const fileRef = ref(ensureStorage(), `tracks/${uid}/${Date.now()}-${file.name}`);
-    const task = uploadBytesResumable(fileRef, file, { contentType: file.type || 'audio/mpeg', customMetadata: Object.fromEntries(Object.entries(metadata).filter(([, v]) => v)) });
-    observeUpload(task, file, onProgress, resolve, reject);
-  });
+  void metadata;
+  validateClientFile(file, 'music');
+  return uploadViaApi({ uid, file, folder: 'music', onProgress });
 }
 
 export function uploadProfilePhoto(uid, file, onProgress) {
-  return new Promise((resolve, reject) => {
-    const fileRef = ref(ensureStorage(), `avatars/${uid}/${Date.now()}-${file.name}`);
-    const task = uploadBytesResumable(fileRef, file, { contentType: file.type || 'image/jpeg' });
-    observeUpload(task, file, onProgress, resolve, reject);
-  });
+  validateClientFile(file, 'covers');
+  return uploadViaApi({ uid, file, folder: 'covers', onProgress });
 }
