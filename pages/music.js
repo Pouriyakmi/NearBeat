@@ -27,6 +27,7 @@ export default function MusicPage() {
   const [uploadState, setUploadState] = useState('idle');
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadHelp, setUploadHelp] = useState('');
+  const [uploadDebug, setUploadDebug] = useState(null);
   const [form, setForm] = useState({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
 
   const handleUpload = async (e) => {
@@ -37,13 +38,14 @@ export default function MusicPage() {
 
     setUploadMessage('Starting upload…');
     setUploadHelp('');
+    setUploadDebug(null);
     setUploadState('uploading');
     setProgress(1);
     try {
       setUploadMessage('Checking location permission…');
       const loc = await safeRefreshLocation(refreshLocation);
       setUploadMessage('Uploading file to Arvan Storage…');
-      const { downloadURL, downloadUrl, publicUrl, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
+      const { downloadURL, downloadUrl, publicUrl, storagePath, debug } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
         setProgress(nextProgress);
         if (rawState === 'paused') setUploadState('uploading');
       }, {
@@ -53,6 +55,11 @@ export default function MusicPage() {
         genre: form.genre,
       });
       const resolvedAudioUrl = downloadURL || downloadUrl || publicUrl;
+      setUploadDebug({
+        stage: 'upload-success-before-post',
+        request: debug,
+        resolvedAudioUrl,
+      });
       if (!resolvedAudioUrl) throw new Error('Upload completed but no audio URL was returned.');
       setUploadState('finalizing');
       setUploadMessage('Upload finished. Creating post…');
@@ -85,6 +92,14 @@ export default function MusicPage() {
         message: err?.message,
         originalMessage: err?.originalMessage,
         originalError: err?.originalError,
+        debug: err?.debug,
+      });
+      setUploadDebug({
+        stage: 'upload-failed',
+        code: err?.code,
+        message: err?.message,
+        originalMessage: err?.originalMessage,
+        debug: err?.debug || null,
       });
       setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
     } finally {
@@ -105,5 +120,12 @@ export default function MusicPage() {
       {(uploadState === 'uploading' || uploadState === 'finalizing') && <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10"><div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${progress}%` }} /></div>}
       {uploadMessage && <p className={`mt-3 text-sm ${uploadState === 'error' ? 'text-rose-400' : uploadState === 'success' ? 'text-emerald-300' : 'text-slate-300'}`}>{uploadMessage}</p>}
       {uploadHelp && <p className="mt-2 break-all rounded-xl border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">{uploadHelp}</p>}
+      {uploadDebug && <div className="mt-3 rounded-xl border border-sky-300/30 bg-sky-500/10 p-3 text-xs text-sky-100">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-bold">Upload debug log</span>
+          {uploadDebug?.debug?.url && <a href={uploadDebug.debug.url} target="_blank" rel="noreferrer" className="rounded-full border border-sky-200/40 px-2 py-1 text-[11px] font-semibold text-sky-100 hover:bg-sky-300/20">Open last request URL</a>}
+        </div>
+        <pre className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(uploadDebug, null, 2)}</pre>
+      </div>}
     </section>{loading && <p className="mt-6 text-slate-400">Loading tracks…</p>}{error && <p className="mt-6 text-rose-400">{error}</p>}<div className="mt-6 space-y-3">{myTracks.map((track) => <TrackRow key={track.id} track={{ title: track.title, artist: track.artist, artworkGradient: '#0f172a,#334155', isUploaded: true }} meta={track.album || 'upload'} />)}</div></div></AppShell>;
 }
