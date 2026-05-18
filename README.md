@@ -45,7 +45,7 @@ Fill with Arvan storage values:
 
 ## Storage architecture
 - Firebase remains responsible for **Auth + Firestore**.
-- Media uploads (music and cover images) go to Arvan Object Storage through `POST /api/storage/upload`.
+- Media uploads (music and cover images) go to Arvan Object Storage through `/.netlify/functions/create-upload-url` (signed URL) + direct client PUT upload.
 - Returned payload format is preserved:
   - `storagePath`
   - `downloadURL`
