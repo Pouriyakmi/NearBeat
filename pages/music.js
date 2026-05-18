@@ -7,7 +7,7 @@ import { useFeed } from '../hooks/useFeed';
 import { useAuth } from '../context/AuthContext';
 import { usePrivacy } from '../context/PrivacyContext';
 import { createMusicPost } from '../services/firestore';
-import { uploadTrackFile } from '../services/storage';
+import { uploadFileToArvan } from '../services/arvan-upload';
 
 const LOCATION_TIMEOUT_MS = 7000;
 
@@ -43,16 +43,10 @@ export default function MusicPage() {
       setUploadMessage('Checking location permission…');
       const loc = await safeRefreshLocation(refreshLocation);
       setUploadMessage('Uploading file to Arvan Storage…');
-      const { downloadURL, downloadUrl, publicUrl, storagePath } = await uploadTrackFile(user.uid, file, (nextProgress, rawState) => {
-        setProgress(nextProgress);
-        if (rawState === 'paused') setUploadState('uploading');
-      }, {
-        title,
-        artist,
-        album: form.album,
-        genre: form.genre,
-      });
-      const resolvedAudioUrl = downloadURL || downloadUrl || publicUrl;
+      const uploaded = await uploadFileToArvan(file);
+      setProgress(100);
+      const resolvedAudioUrl = uploaded.url;
+      const storagePath = uploaded.key;
       if (!resolvedAudioUrl) throw new Error('Upload completed but no audio URL was returned.');
       setUploadState('finalizing');
       setUploadMessage('Upload finished. Creating post…');
@@ -80,6 +74,7 @@ export default function MusicPage() {
       setForm({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
     } catch (err) {
       setUploadState('error');
+      console.error(err);
       console.error('[music] upload failed', {
         code: err?.code,
         message: err?.message,
@@ -87,6 +82,7 @@ export default function MusicPage() {
         originalError: err?.originalError,
       });
       setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
+      alert(err?.message || err?.originalMessage || 'Upload failed.');
     } finally {
       setProgress(0);
       e.target.value = '';
