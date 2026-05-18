@@ -1,4 +1,4 @@
-const ALLOWED_UPLOAD_FOLDERS = new Set(['music', 'covers']);
+import { uploadFileToArvan } from './arvan-upload';
 
 function validateClientFile(file, kind) {
   if (!file) throw new Error('No file selected.');
@@ -10,41 +10,27 @@ function validateClientFile(file, kind) {
   }
 }
 
-async function uploadViaApi({ uid, file, folder, onProgress }) {
-  if (!ALLOWED_UPLOAD_FOLDERS.has(folder)) throw new Error('Invalid upload folder.');
-  if (!uid) throw new Error('Missing user id for upload.');
-
-  const form = new FormData();
-  form.append('file', file);
-  form.append('uid', uid);
-  form.append('folder', folder);
-
+async function uploadDirect({ file, onProgress }) {
   onProgress?.(5, 'running');
-  const response = await fetch('/api/storage/upload', { method: 'POST', body: form });
-  onProgress?.(90, 'running');
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const err = new Error(data?.error || 'Upload failed.');
-    err.code = 'storage/upload-failed';
-    throw err;
-  }
-
+  const uploaded = await uploadFileToArvan(file);
   onProgress?.(100, 'success');
+
   return {
-    storagePath: data.storagePath,
-    downloadURL: data.downloadURL,
-    publicUrl: data.publicUrl,
+    storagePath: uploaded.key,
+    downloadURL: uploaded.url,
+    publicUrl: uploaded.url,
   };
 }
 
 export function uploadTrackFile(uid, file, onProgress, metadata = {}) {
+  void uid;
   void metadata;
   validateClientFile(file, 'music');
-  return uploadViaApi({ uid, file, folder: 'music', onProgress });
+  return uploadDirect({ file, onProgress });
 }
 
 export function uploadProfilePhoto(uid, file, onProgress) {
+  void uid;
   validateClientFile(file, 'covers');
-  return uploadViaApi({ uid, file, folder: 'covers', onProgress });
+  return uploadDirect({ file, onProgress });
 }
