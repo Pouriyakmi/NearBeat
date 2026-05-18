@@ -7,7 +7,7 @@ import { useFeed } from '../hooks/useFeed';
 import { useAuth } from '../context/AuthContext';
 import { usePrivacy } from '../context/PrivacyContext';
 import { createMusicPost } from '../services/firestore';
-import { uploadFileToArvan } from '../services/arvan-upload';
+import { uploadTrackFile } from '../services/storage';
 
 const LOCATION_TIMEOUT_MS = 7000;
 
@@ -43,10 +43,10 @@ export default function MusicPage() {
       setUploadMessage('Checking location permission…');
       const loc = await safeRefreshLocation(refreshLocation);
       setUploadMessage('Uploading file to Arvan Storage…');
-      const uploaded = await uploadFileToArvan(file);
+      const uploaded = await uploadTrackFile(user.uid, file, setProgress);
       setProgress(100);
       const resolvedAudioUrl = uploaded.url;
-      const storagePath = uploaded.key;
+      const storagePath = uploaded.path || uploaded.key;
       if (!resolvedAudioUrl) throw new Error('Upload completed but no audio URL was returned.');
       setUploadState('finalizing');
       setUploadMessage('Upload finished. Creating post…');
@@ -72,17 +72,17 @@ export default function MusicPage() {
       setUploadState('success');
       setUploadMessage(`Track uploaded successfully${createdPost?.id ? ` (post: ${createdPost.id})` : ''}.`);
       setForm({ title: '', artist: '', album: '', genre: '', imageUrl: '' });
-    } catch (err) {
+    } catch (error) {
       setUploadState('error');
-      console.error(err);
+      console.error(error);
       console.error('[music] upload failed', {
-        code: err?.code,
-        message: err?.message,
-        originalMessage: err?.originalMessage,
-        originalError: err?.originalError,
+        code: error?.code,
+        message: error?.message,
+        originalMessage: error?.originalMessage,
+        originalError: error?.originalError,
       });
-      setUploadMessage(err?.message || err?.originalMessage || 'Upload failed.');
-      alert(err?.message || err?.originalMessage || 'Upload failed.');
+      setUploadMessage(error?.message || error?.originalMessage || 'Upload failed.');
+      alert(error?.message || 'Upload failed');
     } finally {
       setProgress(0);
       e.target.value = '';

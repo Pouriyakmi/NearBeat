@@ -16,6 +16,9 @@ async function uploadDirect({ file, onProgress }) {
   onProgress?.(100, 'success');
 
   return {
+    url: uploaded.url,
+    key: uploaded.key,
+    path: uploaded.key,
     storagePath: uploaded.key,
     downloadURL: uploaded.url,
     publicUrl: uploaded.url,
